@@ -1,0 +1,112 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int       @id @default(autoincrement())
+  telegramId    BigInt    @unique
+  username      String?
+  fullName      String
+  isActive      Boolean   @default(true)
+  isBanned      Boolean   @default(false)
+  referralCode  String    @unique
+  referredById  Int?
+  referredBy    User?     @relation("Referral", fields: [referredById], references: [id])
+  referrals     User[]    @relation("Referral")
+  orders        Order[]
+  vpnAccounts   VpnAccount[]
+  createdAt     DateTime  @default(now())
+}
+
+model Server {
+  id          Int       @id @default(autoincrement())
+  name        String
+  region      String
+  flag        String
+  host        String
+  apiUrl      String
+  apiPassword String
+  maxPeers    Int       @default(50)
+  isActive    Boolean   @default(true)
+  vpnAccounts VpnAccount[]
+  createdAt   DateTime  @default(now())
+}
+
+model Package {
+  id          Int       @id @default(autoincrement())
+  name        String
+  durationDay Int
+  price       Int
+  maxDevices  Int       @default(1)
+  isActive    Boolean   @default(true)
+  orders      Order[]
+}
+
+model Order {
+  id              Int           @id @default(autoincrement())
+  userId          Int
+  user            User          @relation(fields: [userId], references: [id])
+  packageId       Int
+  package         Package       @relation(fields: [packageId], references: [id])
+  serverId        Int?
+  status          OrderStatus   @default(PENDING)
+  amount          Int
+  paymentId       String?
+  paymentUrl      String?
+  qrImageUrl      String?
+  paidAt          DateTime?
+  expiredAt       DateTime?
+  vpnAccount      VpnAccount?
+  referralUsed    String?
+  createdAt       DateTime      @default(now())
+}
+
+model VpnAccount {
+  id              Int       @id @default(autoincrement())
+  userId          Int
+  user            User      @relation(fields: [userId], references: [id])
+  orderId         Int       @unique
+  order           Order     @relation(fields: [orderId], references: [id])
+  serverId        Int
+  server          Server    @relation(fields: [serverId], references: [id])
+  peerName        String
+  privateKey      String
+  publicKey       String
+  assignedIp      String
+  configFile      String
+  isSuspended     Boolean   @default(false)
+  isTrial         Boolean   @default(false)
+  activeUntil     DateTime
+  lastNotifiedAt  DateTime?
+  createdAt       DateTime  @default(now())
+}
+
+model ReferralReward {
+  id          Int       @id @default(autoincrement())
+  referrerId  Int
+  refereeId   Int
+  orderId     Int
+  rewardDay   Int
+  isApplied   Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+model BotConfig {
+  key       String  @id
+  value     String
+  updatedAt DateTime @updatedAt
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  FAILED
+}
