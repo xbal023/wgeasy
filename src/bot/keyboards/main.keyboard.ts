@@ -2,9 +2,9 @@ import { InlineKeyboard } from 'grammy';
 
 export const mainKeyboard = () => {
   return new InlineKeyboard()
-    .text('🛒 Beli VPN', 'menu:buy').text('📋 Akun Saya', 'menu:account').row()
-    .text('🎁 Trial', 'menu:trial').text('👥 Referral', 'menu:referral').row()
-    .text('❓ Bantuan / Help', 'menu:help');
+    .text('🛒 BUY', 'menu:buy').text('📋 Akun Saya', 'menu:account').row()
+    .text('🎁 TRIAL', 'menu:trial').text('👥 Referral', 'menu:referral').row()
+    .text('❓ HELP', 'menu:help');
 };
 
 export const buildGateKeyboard = (chatUrl: string, callbackId?: string) => {

@@ -11,5 +11,5 @@ export const adminKeyboard = () => {
 export const adminSettingsKeyboard = (isGateActive: boolean) => {
   return new InlineKeyboard()
     .text(`Group Gate: ${isGateActive ? '✅ ON' : '❌ OFF'}`, 'admin:toggle_gate').row()
-    .text('🔙 Kembali', 'admin:main');
+    .text('🔙 BACK', 'admin:main');
 };

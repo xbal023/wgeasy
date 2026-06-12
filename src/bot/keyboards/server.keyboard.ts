@@ -6,6 +6,6 @@ export const serverKeyboard = (servers: Server[]) => {
   servers.forEach((server) => {
     kb.text(`${server.flag} ${server.region} ${server.name}`, `order:server:${server.id}`).row();
   });
-  kb.text('← Kembali / Back', 'menu:main');
+  kb.text('🔙 BACK', 'menu:main');
   return kb;
 };

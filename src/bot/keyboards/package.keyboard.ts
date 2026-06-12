@@ -6,6 +6,6 @@ export const packageKeyboard = (packages: Package[], serverId: number) => {
   packages.forEach((pkg) => {
     kb.text(`${pkg.name} — Rp ${pkg.price.toLocaleString('id-ID')}`, `order:package:${pkg.id}:${serverId}`).row();
   });
-  kb.text('← Kembali / Back', 'menu:buy');
+  kb.text('🔙 BACK', 'menu:buy');
   return kb;
 };
