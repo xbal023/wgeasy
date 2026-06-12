@@ -31,7 +31,7 @@ export const gateMiddleware: Middleware = async (ctx, next) => {
     where: { key: 'gate_chat_url' },
   });
 
-  const message = buildGateMessage(chatName?.value ?? 'Komunitas VPN');
+  const message = buildGateMessage(chatName?.value ?? 'VPN Community');
   const keyboard = buildGateKeyboard(chatUrl?.value ?? '#', ctx.callbackQuery?.id);
 
   if (ctx.callbackQuery) {

@@ -8,11 +8,11 @@ export const mainKeyboard = () => {
 };
 
 export const buildGateKeyboard = (chatUrl: string, callbackId?: string) => {
-  const kb = new InlineKeyboard().url('👉 Join Komunitas Sekarang', chatUrl).row();
+  const kb = new InlineKeyboard().url('👉 JOIN COMMUNITY', chatUrl).row();
   if (callbackId) {
-    kb.text('✅ Sudah Join — Cek Ulang', 'gate:recheck');
+    kb.text('✅ VERIFY', 'gate:recheck');
   } else {
-    kb.text('✅ Sudah Join — Cek Ulang', 'gate:recheck');
+    kb.text('✅ VERIFY', 'gate:recheck');
   }
   return kb;
 };
