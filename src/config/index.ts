@@ -12,6 +12,7 @@ const envSchema = z.object({
   PAYMENT_API_KEY: z.string(),
   PAYMENT_WEBHOOK_SECRET: z.string(),
   PAYMENT_BASE_URL: z.string().url(),
+  APP_URL: z.string().url(),
 });
 
 export const config = envSchema.parse(process.env);

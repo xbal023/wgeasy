@@ -10,22 +10,22 @@ import { registerAdminHandler } from './handlers/admin.handler';
 
 export type MyContext = Context & SessionFlavor<{}> & ConversationFlavor<Context>;
 
+export const bot = new Bot<MyContext>(config.BOT_TOKEN);
+
+bot.catch((err) => {
+  logger.error(`Bot error: ${err.message}`);
+});
+
+bot.use(session({ initial: () => ({}) }));
+bot.use(conversations());
+
+registerStartHandler(bot as any);
+registerOrderHandler(bot as any);
+registerTrialHandler(bot as any);
+registerReferralHandler(bot as any);
+registerAdminHandler(bot as any);
+
 export const startBot = async () => {
-  const bot = new Bot<MyContext>(config.BOT_TOKEN);
-
-  bot.catch((err) => {
-    logger.error(`Bot error: ${err.message}`);
-  });
-
-  bot.use(session({ initial: () => ({}) }));
-  bot.use(conversations());
-
-  registerStartHandler(bot as any);
-  registerOrderHandler(bot as any);
-  registerTrialHandler(bot as any);
-  registerReferralHandler(bot as any);
-  registerAdminHandler(bot as any);
-
-  logger.info('Bot starting...');
-  await bot.start();
+  logger.info('Setting up bot webhook...');
+  await bot.api.setWebhook(`${config.APP_URL}/api/bot-webhook`);
 };
