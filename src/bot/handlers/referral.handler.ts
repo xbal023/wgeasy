@@ -1,4 +1,4 @@
-import { Bot, Context } from 'grammy';
+import { Bot, Context, InlineKeyboard } from 'grammy';
 import { prisma } from '../../db/client';
 
 export const registerReferralHandler = (bot: Bot<Context>) => {
@@ -25,7 +25,6 @@ export const registerReferralHandler = (bot: Bot<Context>) => {
 
     const text = `👥  <b>Referral Program</b>\n\nAjak teman, dapat bonus bareng! 🎉\n\n🔗 Link kamu:\n<code>${link}</code>\n\n📊 <b>Statistik:</b>\n┌──────────────────────────┐\n│ Total diajak  : ${totalInvited} orang\n│ Berhasil beli : ${totalBought} orang\n│ Bonus didapat : +${totalRewardDays} hari\n└──────────────────────────┘\n\nSetiap teman yang beli = bonus hari buat kamu! 🎁`;
     
-    const { InlineKeyboard } = require('grammy');
     const kb = new InlineKeyboard()
       .url('Bagikan Link', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Yuk pakai VPN super cepat bareng aku!')}`).row()
       .text('🏠 Menu Utama', 'menu:main');

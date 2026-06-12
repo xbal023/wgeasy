@@ -1,4 +1,4 @@
-import { Bot, Context, InputFile } from 'grammy';
+import { Bot, Context, InputFile, InlineKeyboard } from 'grammy';
 import { prisma } from '../../db/client';
 import { wireguardService } from '../../services/wireguard.service';
 import { generateQrCode } from '../../services/qrcode.service';
@@ -8,31 +8,29 @@ export const registerTrialHandler = (bot: Bot<Context>) => {
   bot.callbackQuery('menu:trial', async (ctx) => {
     if (!ctx.from) return;
     const user = await prisma.user.findUnique({ where: { telegramId: ctx.from.id }, include: { vpnAccounts: true } });
-    
+
     if (!user) return ctx.answerCallbackQuery('User tidak ditemukan!');
 
     const hasTrial = user.vpnAccounts.some(acc => acc.isTrial);
     if (hasTrial) {
       const text = `😅  <b>Ups, kamu udah pernah trial nih!</b>\n\nTapi tenang, paket berbayar kita\nterjangkau banget lho! 😉`;
-      const { InlineKeyboard } = require('grammy');
       const kb = new InlineKeyboard().text('🛒 Beli Sekarang', 'menu:buy').row().text('🏠 Menu Utama', 'menu:main');
       await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: kb }).catch(async () => {
-         await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => { });
       });
       return;
     }
 
     const servers = await prisma.server.findMany({ where: { isActive: true } });
     const text = `🎁  <b>Trial Gratis!</b>\n\nPilih lokasi server untuk trial kamu! ⚡`;
-    const { InlineKeyboard } = require('grammy');
     const kb = new InlineKeyboard();
     servers.forEach((server) => {
       kb.text(`${server.flag} ${server.region} ${server.name}`, `trial:server:${server.id}`).row();
     });
-    kb.text('← Kembali / Back', 'menu:main');
+    kb.text('← BACK', 'menu:main');
 
     await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: kb }).catch(async () => {
-        await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => { });
     });
   });
 
@@ -46,7 +44,7 @@ export const registerTrialHandler = (bot: Bot<Context>) => {
 
     try {
       await ctx.editMessageCaption({ caption: '⏳ Memproses akun trial Anda...', parse_mode: 'HTML' }).catch(async () => {
-         await ctx.editMessageText('⏳ Memproses akun trial Anda...').catch(() => {});
+        await ctx.editMessageText('⏳ Memproses akun trial Anda...').catch(() => { });
       });
 
       const trialDaysStr = await getDynamicConfig('trial_day', '1');
@@ -87,7 +85,7 @@ export const registerTrialHandler = (bot: Bot<Context>) => {
       const qrBuffer = await generateQrCode(wgConfig.configFile);
       const text = `🎉  <b>Trial Berhasil Dibuat!</b>\n\nAktif s/d: ${activeUntil.toLocaleDateString()}\nServer: ${server.flag} ${server.name}\n\nSilakan scan QR di atas atau gunakan file .conf berikut.`;
 
-      await ctx.deleteMessage().catch(() => {});
+      await ctx.deleteMessage().catch(() => { });
       await ctx.replyWithPhoto(new InputFile(qrBuffer, 'qr.png'), { caption: text, parse_mode: 'HTML' });
       await ctx.replyWithDocument(new InputFile(Buffer.from(wgConfig.configFile), `${peerName}.conf`));
 
