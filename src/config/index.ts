@@ -4,6 +4,7 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const envSchema = z.object({
+  BOT_NAME: z.string(),
   BOT_TOKEN: z.string(),
   ADMIN_TELEGRAM_IDS: z.string().transform((val) => val.split(',').map(Number)),
   DATABASE_URL: z.string().url(),

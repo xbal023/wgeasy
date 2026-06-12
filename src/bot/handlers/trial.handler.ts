@@ -1,20 +1,21 @@
-import { Bot, Context, InputFile, InlineKeyboard } from 'grammy';
+import { Bot, InputFile, InlineKeyboard } from 'grammy';
+import { MyContext } from '../index';
 import { prisma } from '../../db/client';
 import { wireguardService } from '../../services/wireguard.service';
 import { generateQrCode } from '../../services/qrcode.service';
 import { getDynamicConfig } from '../../utils/config.util';
 
-export const registerTrialHandler = (bot: Bot<Context>) => {
+export const registerTrialHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:trial', async (ctx) => {
     if (!ctx.from) return;
     const user = await prisma.user.findUnique({ where: { telegramId: ctx.from.id }, include: { vpnAccounts: true } });
 
-    if (!user) return ctx.answerCallbackQuery('User tidak ditemukan!');
+    if (!user) return ctx.answerCallbackQuery(ctx.t('error_user_not_found'));
 
     const hasTrial = user.vpnAccounts.some(acc => acc.isTrial);
     if (hasTrial) {
-      const text = `😅  <b>Ups, kamu udah pernah trial nih!</b>\n\nTapi tenang, paket berbayar kita\nterjangkau banget lho! 😉`;
-      const kb = new InlineKeyboard().text('🛒 Beli Sekarang', 'menu:buy').row().text('🏠 Menu Utama', 'menu:main');
+      const text = ctx.t('trial_already_used');
+      const kb = new InlineKeyboard().text(ctx.t('btn_buy_now'), 'menu:buy').row().text(ctx.t('btn_back_main'), 'menu:main');
       await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: kb }).catch(async () => {
         await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => { });
       });
@@ -22,12 +23,12 @@ export const registerTrialHandler = (bot: Bot<Context>) => {
     }
 
     const servers = await prisma.server.findMany({ where: { isActive: true } });
-    const text = `🎁  <b>Trial Gratis!</b>\n\nPilih lokasi server untuk trial kamu! ⚡`;
+    const text = ctx.t('trial_choose_server');
     const kb = new InlineKeyboard();
     servers.forEach((server) => {
       kb.text(`${server.flag} ${server.region} ${server.name}`, `trial:server:${server.id}`).row();
     });
-    kb.text('← BACK', 'menu:main');
+    kb.text(ctx.t('btn_back'), 'menu:main');
 
     await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: kb }).catch(async () => {
       await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => { });
@@ -40,11 +41,11 @@ export const registerTrialHandler = (bot: Bot<Context>) => {
 
     const user = await prisma.user.findUnique({ where: { telegramId: ctx.from.id } });
     const server = await prisma.server.findUnique({ where: { id: serverId } });
-    if (!user || !server) return ctx.answerCallbackQuery('Data tidak ditemukan!');
+    if (!user || !server) return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
 
     try {
-      await ctx.editMessageCaption({ caption: '⏳ Memproses akun trial Anda...', parse_mode: 'HTML' }).catch(async () => {
-        await ctx.editMessageText('⏳ Memproses akun trial Anda...').catch(() => { });
+      await ctx.editMessageCaption({ caption: ctx.t('trial_processing'), parse_mode: 'HTML' }).catch(async () => {
+        await ctx.editMessageText(ctx.t('trial_processing')).catch(() => { });
       });
 
       const trialDaysStr = await getDynamicConfig('trial_day', '1');
@@ -83,14 +84,14 @@ export const registerTrialHandler = (bot: Bot<Context>) => {
       });
 
       const qrBuffer = await generateQrCode(wgConfig.configFile);
-      const text = `🎉  <b>Trial Berhasil Dibuat!</b>\n\nAktif s/d: ${activeUntil.toLocaleDateString()}\nServer: ${server.flag} ${server.name}\n\nSilakan scan QR di atas atau gunakan file .conf berikut.`;
+      const text = ctx.t('trial_success', { activeUntil: activeUntil.toLocaleDateString(), serverFlag: server.flag, serverName: server.name });
 
       await ctx.deleteMessage().catch(() => { });
       await ctx.replyWithPhoto(new InputFile(qrBuffer, 'qr.png'), { caption: text, parse_mode: 'HTML' });
       await ctx.replyWithDocument(new InputFile(Buffer.from(wgConfig.configFile), `${peerName}.conf`));
 
     } catch (err: any) {
-      await ctx.reply(`Gagal membuat trial: ${err.message}`);
+      await ctx.reply(ctx.t('trial_failed', { error: err.message }));
     }
   });
 };

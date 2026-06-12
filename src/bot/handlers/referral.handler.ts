@@ -1,7 +1,8 @@
-import { Bot, Context, InlineKeyboard } from 'grammy';
+import { Bot, InlineKeyboard } from 'grammy';
+import { MyContext } from '../index';
 import { prisma } from '../../db/client';
 
-export const registerReferralHandler = (bot: Bot<Context>) => {
+export const registerReferralHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:referral', async (ctx) => {
     if (!ctx.from) return;
     const user = await prisma.user.findUnique({ 
@@ -11,7 +12,7 @@ export const registerReferralHandler = (bot: Bot<Context>) => {
       }
     });
     
-    if (!user) return ctx.answerCallbackQuery('User tidak ditemukan!');
+    if (!user) return ctx.answerCallbackQuery(ctx.t('error_user_not_found'));
 
     const rewards = await prisma.referralReward.findMany({
       where: { referrerId: user.id }
@@ -23,11 +24,11 @@ export const registerReferralHandler = (bot: Bot<Context>) => {
 
     const link = `https://t.me/${ctx.me.username}?start=${user.referralCode}`;
 
-    const text = `👥  <b>Referral Program</b>\n\nAjak teman, dapat bonus bareng! 🎉\n\n🔗 Link kamu:\n<code>${link}</code>\n\n📊 <b>Statistik:</b>\n┌──────────────────────────┐\n│ Total diajak  : ${totalInvited} orang\n│ Berhasil beli : ${totalBought} orang\n│ Bonus didapat : +${totalRewardDays} hari\n└──────────────────────────┘\n\nSetiap teman yang beli = bonus hari buat kamu! 🎁`;
+    const text = ctx.t('referral_stats', { link, totalInvited, totalBought, totalRewardDays });
     
     const kb = new InlineKeyboard()
-      .url('Bagikan Link', `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent('Yuk pakai VPN super cepat bareng aku!')}`).row()
-      .text('🏠 Menu Utama', 'menu:main');
+      .url(ctx.t('referral_share_btn'), `https://t.me/share/url?url=${encodeURIComponent(link)}&text=${encodeURIComponent(ctx.t('referral_share_text'))}`).row()
+      .text(ctx.t('btn_back_main'), 'menu:main');
 
     await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: kb }).catch(async () => {
         await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});

@@ -1,4 +1,5 @@
-import { Bot, Context } from 'grammy';
+import { Bot } from 'grammy';
+import { MyContext } from '../index';
 import { prisma } from '../../db/client';
 import { mainKeyboard } from "../keyboards/main.keyboard"
 import { serverKeyboard } from '../keyboards/server.keyboard';
@@ -7,13 +8,13 @@ import { confirmKeyboard } from '../keyboards/confirm.keyboard';
 import { paymentService } from '../../services/payment.service';
 import { buildStartMessage } from "../messages/start.message"
 
-export const registerOrderHandler = (bot: Bot<Context>) => {
+export const registerOrderHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:buy', async (ctx) => {
     const servers = await prisma.server.findMany({ where: { isActive: true } });
-    const text = `🌍  <b>Pilih Server VPN</b>\n     <i>Choose your server</i>\n\nPilih lokasi yang paling dekat sama kamu\nuntuk koneksi tercepat! ⚡\n<i>Pick the closest location for best speed!</i>`;
+    const text = ctx.t('order_choose_server');
 
-    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: serverKeyboard(servers) }).catch(async () => {
-      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: serverKeyboard(servers) }).catch(() => { });
+    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: serverKeyboard(ctx.t, servers) }).catch(async () => {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: serverKeyboard(ctx.t, servers) }).catch(() => { });
     });
   });
 
@@ -22,12 +23,12 @@ export const registerOrderHandler = (bot: Bot<Context>) => {
     const packages = await prisma.package.findMany({ where: { isActive: true } });
     const server = await prisma.server.findUnique({ where: { id: serverId } });
 
-    if (!server) return ctx.answerCallbackQuery('Server tidak ditemukan!');
+    if (!server) return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
 
-    const text = `📦  <b>Pilih Paket VPN</b>\n     <i>Choose your plan</i>\n\nServer: ${server.flag} ${server.region} ${server.name}`;
+    const text = ctx.t('order_choose_package', { serverFlag: server.flag, serverRegion: server.region, serverName: server.name });
 
-    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: packageKeyboard(packages, serverId) }).catch(async () => {
-      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: packageKeyboard(packages, serverId) }).catch(() => { });
+    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: packageKeyboard(ctx.t, packages, serverId) }).catch(async () => {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: packageKeyboard(ctx.t, packages, serverId) }).catch(() => { });
     });
   });
 
@@ -38,12 +39,12 @@ export const registerOrderHandler = (bot: Bot<Context>) => {
     if (!ctx.from) return;
 
     const user = await prisma.user.findUnique({ where: { telegramId: ctx.from.id } });
-    if (!user) return ctx.answerCallbackQuery('User tidak ditemukan!');
+    if (!user) return ctx.answerCallbackQuery(ctx.t('error_user_not_found'));
 
     const pkg = await prisma.package.findUnique({ where: { id: packageId } });
     const server = await prisma.server.findUnique({ where: { id: serverId } });
 
-    if (!pkg || !server) return ctx.answerCallbackQuery('Data tidak ditemukan!');
+    if (!pkg || !server) return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
 
     const order = await prisma.order.create({
       data: {
@@ -55,10 +56,10 @@ export const registerOrderHandler = (bot: Bot<Context>) => {
       }
     });
 
-    const text = `🧾  <b>Konfirmasi Order</b>\n     <i>Order Summary</i>\n\n┌─────────────────────────┐\n│ Server  : ${server.flag} ${server.region}\n│ Paket   : ${pkg.name}\n│ Harga   : Rp ${pkg.price.toLocaleString('id-ID')}\n│ Metode  : QRIS\n└─────────────────────────┘\n\nPastiin detailnya udah bener ya! ✅`;
+    const text = ctx.t('order_confirm', { serverFlag: server.flag, serverRegion: server.region, pkgName: pkg.name, pkgPrice: pkg.price.toLocaleString('id-ID') });
 
-    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: confirmKeyboard(order.id) }).catch(async () => {
-      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: confirmKeyboard(order.id) }).catch(() => { });
+    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: confirmKeyboard(ctx.t, order.id) }).catch(async () => {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: confirmKeyboard(ctx.t, order.id) }).catch(() => { });
     });
   });
 
@@ -66,7 +67,7 @@ export const registerOrderHandler = (bot: Bot<Context>) => {
     const orderId = Number(ctx.match[1]);
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { user: true, package: true } });
 
-    if (!order) return ctx.answerCallbackQuery('Order tidak valid!');
+    if (!order) return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
 
     try {
       const refId = `ORD-${Date.now()}-${order.id}`;
@@ -83,7 +84,7 @@ export const registerOrderHandler = (bot: Bot<Context>) => {
       });
 
       const qrUrl = paymentRes.data?.qr_image_url;
-      const text = `💳  <b>Scan QR di bawah ini ya!</b>\n\nOrder ID: #${refId}\nTotal: Rp ${order.amount.toLocaleString('id-ID')}\nBerlaku: 60 menit\n\nSetelah bayar, akun VPN langsung aktif otomatis! 🚀`;
+      const text = ctx.t('order_qr_ready', { refId, amount: order.amount.toLocaleString('id-ID') });
 
       if (qrUrl) {
         await ctx.replyWithPhoto(qrUrl, { caption: text, parse_mode: 'HTML' });
@@ -94,16 +95,27 @@ export const registerOrderHandler = (bot: Bot<Context>) => {
 
     } catch (error: any) {
       console.error(error);
-      ctx.answerCallbackQuery('Gagal membuat pembayaran: ' + error.message);
+      ctx.answerCallbackQuery(ctx.t('order_qr_failed'));
     }
   });
 
   bot.callbackQuery('menu:main', async (ctx) => {
     const name = ctx.from?.first_name ?? 'Kawan';
 
-    const text = buildStartMessage(name);
-    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: mainKeyboard() }).catch(async () => {
-      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: mainKeyboard() }).catch(() => { });
+    const text = buildStartMessage(ctx.t, name);
+    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(async () => {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(() => { });
+    });
+  });
+  
+  bot.callbackQuery(/^order:cancel:(\d+)$/, async (ctx) => {
+    const orderId = Number(ctx.match[1]);
+    await prisma.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
+    await ctx.answerCallbackQuery(ctx.t('order_cancel'));
+    const name = ctx.from?.first_name ?? 'Kawan';
+    const text = buildStartMessage(ctx.t, name);
+    await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(async () => {
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(() => { });
     });
   });
 };

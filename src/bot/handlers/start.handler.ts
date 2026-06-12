@@ -1,10 +1,11 @@
-import { Bot, Context, InputFile } from 'grammy';
+import { Bot, InputFile } from 'grammy';
+import { MyContext } from '../index';
 import { gateMiddleware } from '../middlewares/gate.middleware';
 import { buildStartMessage } from '../messages/start.message';
 import { mainKeyboard } from '../keyboards/main.keyboard';
 import { prisma } from '../../db/client';
 
-export const registerStartHandler = (bot: Bot<Context>) => {
+export const registerStartHandler = (bot: Bot<MyContext>) => {
   bot.command('start', gateMiddleware, async (ctx) => {
     if (!ctx.from) return;
     
@@ -42,15 +43,15 @@ export const registerStartHandler = (bot: Bot<Context>) => {
       await ctx.replyWithPhoto(
         new InputFile('./assets/banner.jpg'),
         {
-          caption: buildStartMessage(name),
+          caption: buildStartMessage(ctx.t, name),
           parse_mode: 'HTML',
-          reply_markup: mainKeyboard(),
+          reply_markup: mainKeyboard(ctx.t),
         }
       );
     } catch (error) {
-      await ctx.reply(buildStartMessage(name), {
+      await ctx.reply(buildStartMessage(ctx.t, name), {
         parse_mode: 'HTML',
-        reply_markup: mainKeyboard(),
+        reply_markup: mainKeyboard(ctx.t),
       });
     }
   });
@@ -66,15 +67,15 @@ export const registerStartHandler = (bot: Bot<Context>) => {
       await ctx.replyWithPhoto(
         new InputFile('./assets/banner.jpg'),
         {
-          caption: buildStartMessage(name),
+          caption: buildStartMessage(ctx.t, name),
           parse_mode: 'HTML',
-          reply_markup: mainKeyboard(),
+          reply_markup: mainKeyboard(ctx.t),
         }
       );
     } catch (error) {
-      await ctx.reply(buildStartMessage(name), {
+      await ctx.reply(buildStartMessage(ctx.t, name), {
         parse_mode: 'HTML',
-        reply_markup: mainKeyboard(),
+        reply_markup: mainKeyboard(ctx.t),
       });
     }
   });

@@ -1,9 +1,10 @@
-import { Middleware } from 'grammy';
+import { MiddlewareFn } from 'grammy';
 import { prisma } from '../../db/client';
 import { buildGateMessage } from '../messages/start.message';
 import { buildGateKeyboard } from '../keyboards/main.keyboard';
+import { MyContext } from '../index';
 
-export const gateMiddleware: Middleware = async (ctx, next) => {
+export const gateMiddleware: MiddlewareFn<MyContext> = async (ctx, next) => {
   const gateEnabled = await prisma.botConfig.findUnique({
     where: { key: 'gate_enabled' },
   });
@@ -31,8 +32,8 @@ export const gateMiddleware: Middleware = async (ctx, next) => {
     where: { key: 'gate_chat_url' },
   });
 
-  const message = buildGateMessage(chatName?.value ?? 'VPN Community');
-  const keyboard = buildGateKeyboard(chatUrl?.value ?? '#', ctx.callbackQuery?.id);
+  const message = buildGateMessage(ctx.t, chatName?.value ?? 'VPN Community');
+  const keyboard = buildGateKeyboard(ctx.t, chatUrl?.value ?? '#', ctx.callbackQuery?.id);
 
   if (ctx.callbackQuery) {
     await ctx.editMessageText(message, {

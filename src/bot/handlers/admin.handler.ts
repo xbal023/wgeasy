@@ -9,18 +9,18 @@ import { MyContext } from '../index';
 type MyConversation = Conversation<MyContext>;
 
 async function broadcastConversation(conversation: MyConversation, ctx: MyContext) {
-  await ctx.reply('Kirimkan pesan yang ingin di-broadcast ke SEMUA user (mendukung Gambar/Video/File):\n\nKetik /cancel untuk membatalkan.');
+  await ctx.reply(ctx.t('admin_broadcast_prompt'));
 
   const responseCtx = await conversation.wait();
 
   if (responseCtx.message?.text === '/cancel') {
-    await ctx.reply('Broadcast dibatalkan.');
+    await ctx.reply(ctx.t('admin_broadcast_cancel'));
     return;
   }
 
   const users = await conversation.external(() => prisma.user.findMany({ select: { telegramId: true } }));
 
-  await ctx.reply(`Mengeksekusi broadcast ke ${users.length} users di latar belakang... Anda akan menerima notifikasi jika sudah selesai.`);
+  await ctx.reply(ctx.t('admin_broadcast_executing', { userCount: users.length }));
 
   const messageId = responseCtx.message?.message_id;
   const fromChatId = responseCtx.chat?.id;
@@ -57,7 +57,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
   bot.command('admin', adminMiddleware, async (ctx) => {
     const text = `👨‍💻 <b>Admin Panel</b>\n\nSelamat datang, Master! Pilih menu di bawah ini:`;
-    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: adminKeyboard() });
+    await ctx.reply(text, { parse_mode: 'HTML', reply_markup: adminKeyboard(ctx.t) });
   });
 
   bot.callbackQuery('admin:stats', adminMiddleware, async (ctx) => {
@@ -80,9 +80,9 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const revenueBulanIni = revenueAggr._sum.amount || 0;
     const totalRevenue = totalRevenueAggr._sum.amount || 0;
 
-    const text = `📊 <b>Statistik Bot</b>\n\n👥 Total Users: ${totalUsers}\n🚀 VPN Aktif: ${activeVpn}\n\n💰 Pendapatan Bulan Ini: Rp ${revenueBulanIni.toLocaleString('id-ID')}\n💳 Total Pendapatan: Rp ${totalRevenue.toLocaleString('id-ID')}`;
+    const text = ctx.t('admin_stats', { totalUsers, activeVpn, revenueMonth: revenueBulanIni.toLocaleString('id-ID'), revenueTotal: totalRevenue.toLocaleString('id-ID') });
 
-    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminKeyboard() }).catch(() => { });
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminKeyboard(ctx.t) }).catch(() => { });
   });
 
   bot.callbackQuery('admin:broadcast', adminMiddleware, async (ctx) => {
@@ -95,9 +95,9 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const isGateActiveStr = await getDynamicConfig('gate_active', 'true');
     const isGateActive = isGateActiveStr === 'true';
 
-    const text = `⚙️ <b>Settings Panel</b>\n\nAtur konfigurasi bot secara dinamis:`;
+    const text = ctx.t('admin_settings');
 
-    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminSettingsKeyboard(isGateActive) }).catch(() => { });
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminSettingsKeyboard(ctx.t, isGateActive) }).catch(() => { });
   });
 
   bot.callbackQuery('admin:toggle_gate', adminMiddleware, async (ctx) => {
@@ -112,11 +112,11 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
       create: { key: 'gate_active', value: newValue }
     });
 
-    await ctx.editMessageReplyMarkup({ reply_markup: adminSettingsKeyboard(!isGateActive) }).catch(() => { });
+    await ctx.editMessageReplyMarkup({ reply_markup: adminSettingsKeyboard(ctx.t, !isGateActive) }).catch(() => { });
   });
 
   bot.callbackQuery('admin:main', adminMiddleware, async (ctx) => {
     const text = `👨‍💻 <b>Admin Panel</b>\n\nSelamat datang, Master! Pilih menu di bawah ini:`;
-    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminKeyboard() }).catch(() => { });
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminKeyboard(ctx.t) }).catch(() => { });
   });
 };

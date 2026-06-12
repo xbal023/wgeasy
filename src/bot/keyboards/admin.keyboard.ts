@@ -1,15 +1,16 @@
 import { InlineKeyboard } from 'grammy';
+import { TranslationKey } from '../../i18n';
 
-export const adminKeyboard = () => {
+export const adminKeyboard = (t: (key: TranslationKey) => string) => {
   return new InlineKeyboard()
-    .text('📊 Statistik', 'admin:stats').row()
-    .text('📢 Broadcast', 'admin:broadcast').row()
-    .text('⚙️ Settings', 'admin:settings').row()
-    .text('🔙 Keluar', 'menu:main');
+    .text(t('btn_admin_stats'), 'admin:stats').row()
+    .text(t('btn_admin_broadcast'), 'admin:broadcast').row()
+    .text(t('btn_admin_settings'), 'admin:settings').row()
+    .text(t('btn_admin_exit'), 'menu:main');
 };
 
-export const adminSettingsKeyboard = (isGateActive: boolean) => {
+export const adminSettingsKeyboard = (t: (key: TranslationKey) => string, isGateActive: boolean) => {
   return new InlineKeyboard()
-    .text(`Group Gate: ${isGateActive ? '✅ ON' : '❌ OFF'}`, 'admin:toggle_gate').row()
-    .text('🔙 BACK', 'admin:main');
+    .text(isGateActive ? t('btn_admin_gate_on') : t('btn_admin_gate_off'), 'admin:toggle_gate').row()
+    .text(t('btn_back'), 'admin:main');
 };

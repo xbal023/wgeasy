@@ -1,7 +1,8 @@
-import { Context, NextFunction } from 'grammy';
+import { NextFunction } from 'grammy';
 import { config } from '../../config';
+import { MyContext } from '../index';
 
-export const adminMiddleware = async (ctx: Context, next: NextFunction) => {
+export const adminMiddleware = async (ctx: MyContext, next: NextFunction) => {
   if (!ctx.from) return;
 
   const adminIds = config.ADMIN_TELEGRAM_IDS;
@@ -10,6 +11,6 @@ export const adminMiddleware = async (ctx: Context, next: NextFunction) => {
   if (adminIds.includes(userId)) {
     await next();
   } else {
-    await ctx.reply('⛔ Anda tidak memiliki akses ke fitur ini.');
+    await ctx.reply(ctx.t('error_no_access'));
   }
 };
