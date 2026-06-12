@@ -65,7 +65,7 @@ export class PaymentService {
   async createTransactionQRIS({ amount, refId, customer, products, note = 'VPN Order', expiresInMinutes = 60 }: any) {
     const path = '/v1/api/transactions';
     const body = {
-      merchant_id: process.env.PAYMENT_MERCHANT_ID || 'MOCK_MERCHANT',
+      merchant_id: config.PAYMENT_MERCHANT_ID,
       channel_code: 'QRIS',
       amount,
       ref_id: refId,
@@ -82,9 +82,9 @@ export class PaymentService {
     hmac.update(rawBody, 'utf8');
     const expected = hmac.digest('hex');
     try {
-        return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
+      return crypto.timingSafeEqual(Buffer.from(signature), Buffer.from(expected));
     } catch {
-        return false;
+      return false;
     }
   }
 }

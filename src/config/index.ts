@@ -11,7 +11,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'production']).default('development'),
   PAYMENT_API_KEY: z.string(),
   PAYMENT_WEBHOOK_SECRET: z.string(),
-  PAYMENT_BASE_URL: z.string().url(),
+  PAYMENT_MERCHANT_ID: z.string(),
+  PAYMENT_BASE_URL: z.string().url().default('https://payment.xoftware.id'),
   APP_URL: z.string().url(),
 });
 
