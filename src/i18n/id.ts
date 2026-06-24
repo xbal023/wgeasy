@@ -59,6 +59,14 @@ export const id = {
   referral_share_btn: 'Bagikan Link',
   referral_share_text: 'Yuk pakai VPN super cepat bareng aku!',
 
+  // Account
+  account_empty: '📋 <b>Akun VPN Saya</b>\n\nKamu belum punya akun VPN yang aktif nih. Yuk order sekarang!',
+  account_list: '📋 <b>Akun VPN Saya</b>\n\nBerikut daftar akun VPN kamu:\n\n{accountsInfo}',
+  btn_download_config: '📥 Download Config #{id}',
+
+  // Help
+  help_text: '❓ <b>Pusat Bantuan</b>\n\nJika kamu mengalami kendala atau ada pertanyaan seputar VPN, silakan hubungi admin di bawah ini:\n\nAdmin: @AdminUsername\n\nJam operasional: 09:00 - 21:00',
+
   // Admin
   admin_stats: '📊 <b>Statistik Bot</b>\n\n👥 Total Users: {totalUsers}\n🚀 VPN Aktif: {activeVpn}\n\n💰 Pendapatan Bulan Ini: Rp {revenueMonth}\n💳 Total Pendapatan: Rp {revenueTotal}',
   admin_settings: '⚙️ <b>Settings Panel</b>\n\nAtur konfigurasi bot secara dinamis:',

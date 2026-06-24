@@ -9,6 +9,8 @@ import { registerTrialHandler } from './handlers/trial.handler';
 import { registerReferralHandler } from './handlers/referral.handler';
 import { registerAdminHandler } from './handlers/admin.handler';
 import { registerLanguageHandler } from './handlers/language.handler';
+import { registerAccountHandler } from './handlers/account.handler';
+import { registerHelpHandler } from './handlers/help.handler';
 import { i18nMiddleware } from './middlewares/i18n.middleware';
 
 export type MyContext = Context & SessionFlavor<{ lang: string }> & ConversationFlavor<Context> & { t: (key: TranslationKey, params?: Record<string, string | number>) => string };
@@ -29,6 +31,8 @@ registerTrialHandler(bot as any);
 registerReferralHandler(bot as any);
 registerAdminHandler(bot as any);
 registerLanguageHandler(bot as any);
+registerAccountHandler(bot as any);
+registerHelpHandler(bot as any);
 
 export const startBot = async () => {
   logger.info('Setting up bot webhook...');
