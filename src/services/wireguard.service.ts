@@ -10,15 +10,23 @@ export class WireGuardService {
   async createPeer(server: Server, name: string) {
     const cookies = await this.getSession(server);
     
-    // Create peer - response includes id, publicKey, address, privateKey
-    const createRes = await axios.post(
+    // Create peer - response has publicKey, address but NO id
+    await axios.post(
       `${server.apiUrl}/api/wireguard/client`,
       { name },
       { headers: { Cookie: cookies } }
     );
-    const peer = createRes.data;
 
-    // Get config file using client ID (UUID), not name
+    // Fetch peer list to get the UUID (create response doesn't include id)
+    const peersRes = await axios.get(
+      `${server.apiUrl}/api/wireguard/client`,
+      { headers: { Cookie: cookies } }
+    );
+    const peer = peersRes.data.find((p: any) => p.name === name);
+    
+    if (!peer) throw new Error('Peer created but not found in client list');
+
+    // Get config file using client ID (UUID)
     const configRes = await axios.get(
       `${server.apiUrl}/api/wireguard/client/${peer.id}/configuration`,
       { headers: { Cookie: cookies } }
