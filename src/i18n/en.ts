@@ -17,6 +17,8 @@ export const en: typeof id = {
 
   // Admin Buttons
   btn_admin_stats: '📊 Statistics',
+  btn_admin_packages: '📦 Packages',
+  btn_admin_servers: '🌍 Servers',
   btn_admin_broadcast: '📢 Broadcast',
   btn_admin_settings: '⚙️ Settings',
   btn_admin_exit: '🔙 Exit',

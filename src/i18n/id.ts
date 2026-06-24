@@ -15,6 +15,8 @@ export const id = {
   
   // Admin Buttons
   btn_admin_stats: '📊 Statistik',
+  btn_admin_packages: '📦 Paket',
+  btn_admin_servers: '🌍 Server',
   btn_admin_broadcast: '📢 Broadcast',
   btn_admin_settings: '⚙️ Settings',
   btn_admin_exit: '🔙 Keluar',
