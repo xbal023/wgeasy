@@ -9,18 +9,25 @@ export class WireGuardService {
 
   async createPeer(server: Server, name: string) {
     const cookies = await this.getSession(server);
-    await axios.post(`${server.apiUrl}/api/wireguard/client`, { name }, { headers: { Cookie: cookies } });
     
-    const configRes = await axios.get(`${server.apiUrl}/api/wireguard/client/${name}/configuration`, { headers: { Cookie: cookies } });
-    const configString = configRes.data;
+    // Create peer - response includes id, publicKey, address, privateKey
+    const createRes = await axios.post(
+      `${server.apiUrl}/api/wireguard/client`,
+      { name },
+      { headers: { Cookie: cookies } }
+    );
+    const peer = createRes.data;
 
-    const peersRes = await axios.get(`${server.apiUrl}/api/wireguard/client`, { headers: { Cookie: cookies } });
-    const peer = peersRes.data.find((p: any) => p.name === name);
+    // Get config file using client ID (UUID), not name
+    const configRes = await axios.get(
+      `${server.apiUrl}/api/wireguard/client/${peer.id}/configuration`,
+      { headers: { Cookie: cookies } }
+    );
 
     return {
-      configFile: configString,
-      assignedIp: peer?.address || '0.0.0.0',
-      publicKey: peer?.publicKey || '',
+      configFile: configRes.data,
+      assignedIp: peer.address || '0.0.0.0',
+      publicKey: peer.publicKey || '',
     };
   }
 
