@@ -3,7 +3,7 @@ services:
   wg-easy:
     environment:
       # Change this to your host's public address
-      - WG_HOST=38.49.215.170
+      - WG_HOST=abc.domain.com
 
       # Optional:
       - PASSWORD=

@@ -13,7 +13,7 @@ export const registerLanguageHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery(/^lang:(id|en)$/, async (ctx) => {
     const lang = ctx.match[1];
     ctx.session.lang = lang;
-    await ctx.answerCallbackQuery(ctx.t('lang_changed'));
+    await ctx.answerCallbackQuery(ctx.t('lang_changed')).catch(() => {});
     await ctx.editMessageText(ctx.t('lang_changed'));
   });
 };

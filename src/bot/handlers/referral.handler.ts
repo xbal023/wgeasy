@@ -4,6 +4,7 @@ import { prisma } from '../../db/client';
 
 export const registerReferralHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:referral', async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     if (!ctx.from) return;
     const user = await prisma.user.findUnique({ 
       where: { telegramId: ctx.from.id },

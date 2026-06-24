@@ -10,6 +10,7 @@ import { buildStartMessage } from "../messages/start.message"
 
 export const registerOrderHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:buy', async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const servers = await prisma.server.findMany({ where: { isActive: true } });
     const text = ctx.t('order_choose_server');
 
@@ -19,6 +20,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^order:server:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const serverId = Number(ctx.match[1]);
     const packages = await prisma.package.findMany({ where: { isActive: true } });
     const server = await prisma.server.findUnique({ where: { id: serverId } });
@@ -33,6 +35,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^order:package:(\d+):(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const packageId = Number(ctx.match[1]);
     const serverId = Number(ctx.match[2]);
 
@@ -64,6 +67,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^order:pay:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const orderId = Number(ctx.match[1]);
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { user: true, package: true } });
 
@@ -100,6 +104,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('menu:main', async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const name = ctx.from?.first_name ?? 'Kawan';
 
     const text = buildStartMessage(ctx.t, name);
@@ -111,7 +116,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery(/^order:cancel:(\d+)$/, async (ctx) => {
     const orderId = Number(ctx.match[1]);
     await prisma.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
-    await ctx.answerCallbackQuery(ctx.t('order_cancel'));
+    await ctx.answerCallbackQuery(ctx.t('order_cancel')).catch(() => {});
     const name = ctx.from?.first_name ?? 'Kawan';
     const text = buildStartMessage(ctx.t, name);
     await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(async () => {

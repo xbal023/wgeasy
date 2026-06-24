@@ -7,6 +7,7 @@ import { getDynamicConfig } from '../../utils/config.util';
 
 export const registerTrialHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:trial', async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     if (!ctx.from) return;
     const user = await prisma.user.findUnique({ where: { telegramId: ctx.from.id }, include: { vpnAccounts: true } });
 
@@ -36,6 +37,7 @@ export const registerTrialHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^trial:server:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const serverId = Number(ctx.match[1]);
     if (!ctx.from) return;
 

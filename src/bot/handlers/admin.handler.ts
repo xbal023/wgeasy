@@ -61,6 +61,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:stats', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const totalUsers = await prisma.user.count();
     const activeVpn = await prisma.vpnAccount.count({ where: { isSuspended: false } });
 
@@ -86,11 +87,12 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:broadcast', adminMiddleware, async (ctx) => {
-    await ctx.answerCallbackQuery();
+    await ctx.answerCallbackQuery().catch(() => {});
     await ctx.conversation.enter('broadcastConversation');
   });
 
   bot.callbackQuery('admin:settings', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const { getDynamicConfig } = require('../../utils/config.util');
     const isGateActiveStr = await getDynamicConfig('gate_active', 'true');
     const isGateActive = isGateActiveStr === 'true';
@@ -101,6 +103,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:toggle_gate', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const { getDynamicConfig } = require('../../utils/config.util');
     const isGateActiveStr = await getDynamicConfig('gate_active', 'true');
     const isGateActive = isGateActiveStr === 'true';
@@ -116,6 +119,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:main', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const text = `👨‍💻 <b>Admin Panel</b>\n\nSelamat datang, Master! Pilih menu di bawah ini:`;
     await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminKeyboard(ctx.t) }).catch(() => { });
   });

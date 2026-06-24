@@ -57,6 +57,7 @@ export const registerStartHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('gate:recheck', gateMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
     const name = ctx.from?.first_name ?? 'Kawan';
     
     try {
