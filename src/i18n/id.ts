@@ -65,7 +65,7 @@ export const id = {
   btn_download_config: '📥 Download Config #{id}',
 
   // Help
-  help_text: '❓ <b>Pusat Bantuan</b>\n\nJika kamu mengalami kendala atau ada pertanyaan seputar VPN, silakan hubungi admin di bawah ini:\n\nAdmin: @AdminUsername\n\nJam operasional: 09:00 - 21:00',
+  help_text: '❓ <b>Pusat Bantuan</b>\n\nJika kamu mengalami kendala atau ada pertanyaan seputar VPN, silakan hubungi admin di bawah ini:\n\n{AdminUsername}\n\nJam operasional: 09:00 - 21:00',
 
   // Admin
   admin_stats: '📊 <b>Statistik Bot</b>\n\n👥 Total Users: {totalUsers}\n🚀 VPN Aktif: {activeVpn}\n\n💰 Pendapatan Bulan Ini: Rp {revenueMonth}\n💳 Total Pendapatan: Rp {revenueTotal}',

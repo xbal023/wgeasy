@@ -67,7 +67,7 @@ export const en: typeof id = {
   btn_download_config: '📥 Download Config #{id}',
 
   // Help
-  help_text: '❓ <b>Help Center</b>\n\nIf you have any issues or questions about our VPN, please contact our admin below:\n\nAdmin: @AdminUsername\n\nWorking hours: 09:00 - 21:00',
+  help_text: '❓ <b>Help Center</b>\n\nIf you have any issues or questions about our VPN, please contact our admin below:\n\n{AdminUsername}\n\nWorking hours: 09:00 - 21:00',
 
   // Admin
   admin_stats: '📊 <b>Bot Statistics</b>\n\n👥 Total Users: {totalUsers}\n🚀 Active VPN: {activeVpn}\n\n💰 Revenue This Month: Rp {revenueMonth}\n💳 Total Revenue: Rp {revenueTotal}',
