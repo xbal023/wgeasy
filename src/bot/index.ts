@@ -37,6 +37,7 @@ registerHelpHandler(bot);
 export const startBot = async () => {
   await bot.api.setMyCommands([
     { command: 'start', description: 'Buka Menu Utama' },
+    { command: 'lang', description: 'Ganti Bahasa / Change Language' },
     { command: 'admin', description: 'Buka Panel Admin (Khusus Admin)' }
   ]).catch(err => logger.error(`Failed to set commands: ${err.message}`));
 

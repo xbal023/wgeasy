@@ -1,4 +1,4 @@
-import { Bot, InputFile } from 'grammy';
+import { Bot, InputFile, InlineKeyboard } from 'grammy';
 import { MyContext } from '../index';
 import { gateMiddleware } from '../middlewares/gate.middleware';
 import { buildStartMessage } from '../messages/start.message';
@@ -36,6 +36,14 @@ export const registerStartHandler = (bot: Bot<MyContext>) => {
         referredById: existingUser ? undefined : referredById,
       },
     });
+
+    if (!ctx.session.lang) {
+      const kb = new InlineKeyboard()
+        .text('🇮🇩 Bahasa Indonesia', 'lang:id')
+        .text('🇬🇧 English', 'lang:en');
+      await ctx.reply('Selamat datang! / Welcome!\n\nPilih bahasa / Choose your language:', { reply_markup: kb });
+      return;
+    }
 
     const name = ctx.from.first_name;
     

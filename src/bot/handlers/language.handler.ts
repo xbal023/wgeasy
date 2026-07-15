@@ -14,6 +14,6 @@ export const registerLanguageHandler = (bot: Bot<MyContext>) => {
     const lang = ctx.match[1];
     ctx.session.lang = lang;
     await ctx.answerCallbackQuery(ctx.t('lang_changed')).catch(() => {});
-    await ctx.editMessageText(ctx.t('lang_changed'));
+    await ctx.editMessageText(ctx.t('lang_changed') + '\n\nSilakan ketik /start untuk melanjutkan.\nPlease type /start to continue.');
   });
 };
