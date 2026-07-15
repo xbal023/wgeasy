@@ -38,7 +38,7 @@ export interface TrialBuilderData {
   awaitingField?: 'trialDay';
 }
 
-const adminState = new Map<number, { action: string; data?: any }>();
+const adminState = new Map<number, { action: string; data?: any; messageId?: number }>();
 
 export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
@@ -314,7 +314,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const chatName = await getDynamicConfig('gate_chat_name', '');
     const chatUrl = await getDynamicConfig('gate_chat_url', '');
     const chatId = await getDynamicConfig('gate_chat_id', '');
-    adminState.set(ctx.from!.id, { action: 'gate_form', data: { chatName, chatUrl, chatId } });
+    adminState.set(ctx.from!.id, { action: 'gate_form', data: { chatName, chatUrl, chatId }, messageId: ctx.msg?.message_id });
     await renderGateBuilder(ctx);
   });
 
@@ -362,7 +362,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const { getDynamicConfig } = require('../../utils/config.util');
     const trialDayStr = await getDynamicConfig('trial_day', '1');
     const trialDay = parseInt(trialDayStr) || 1;
-    adminState.set(ctx.from!.id, { action: 'trial_form', data: { trialDay } });
+    adminState.set(ctx.from!.id, { action: 'trial_form', data: { trialDay }, messageId: ctx.msg?.message_id });
     await renderTrialBuilder(ctx);
   });
 
@@ -560,7 +560,13 @@ async function refreshServerList(ctx: MyContext) {
   });
   kb.text('➕ Tambah Server', 'admin:srv_add').row();
   kb.text('🔙 Kembali', 'admin:main');
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  } else {
+    const state = adminState.get(ctx.from!.id);
+    if (state?.messageId && ctx.chat) await ctx.api.editMessageText(ctx.chat.id, state.messageId, text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  }
 }
 
 async function renderServerBuilder(ctx: MyContext) {
@@ -593,7 +599,11 @@ async function renderServerBuilder(ctx: MyContext) {
     .text('💾 SIMPAN', 'admin:srv_save')
     .text('❌ BATAL', 'admin:cancel_action');
 
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  } else if (state.messageId && ctx.chat) {
+    await ctx.api.editMessageText(ctx.chat.id, state.messageId, text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  }
 }
 
 async function renderPackageBuilder(ctx: MyContext) {
@@ -616,11 +626,15 @@ async function renderPackageBuilder(ctx: MyContext) {
     .text('📝 Nama', 'admin:pkg_set:name')
     .text('📝 Durasi', 'admin:pkg_set:durationDay').row()
     .text('📝 Harga', 'admin:pkg_set:price')
-    .text('📝 Max Devices', 'admin:pkg_set:maxDevices').row()
+    .text('📝 Max Device', 'admin:pkg_set:maxDevices').row()
     .text('💾 SIMPAN', 'admin:pkg_save')
     .text('❌ BATAL', 'admin:cancel_action');
 
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  } else if (state.messageId && ctx.chat) {
+    await ctx.api.editMessageText(ctx.chat.id, state.messageId, text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  }
 }
 
 async function renderGateBuilder(ctx: MyContext) {
@@ -648,7 +662,11 @@ async function renderGateBuilder(ctx: MyContext) {
     .text('💾 SIMPAN', 'admin:gate_save')
     .text('❌ BATAL', 'admin:settings');
 
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  } else if (state.messageId && ctx.chat) {
+    await ctx.api.editMessageText(ctx.chat.id, state.messageId, text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  }
 }
 
 async function renderTrialBuilder(ctx: MyContext) {
@@ -669,5 +687,9 @@ async function renderTrialBuilder(ctx: MyContext) {
     .text('💾 SIMPAN', 'admin:trial_save')
     .text('❌ BATAL', 'admin:settings');
 
-  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  } else if (state.messageId && ctx.chat) {
+    await ctx.api.editMessageText(ctx.chat.id, state.messageId, text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  }
 }
