@@ -100,7 +100,6 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:pkg_save', adminMiddleware, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
     const state = adminState.get(ctx.from!.id);
     if (!state || state.action !== 'pkg_form') return;
     
@@ -227,7 +226,6 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:srv_save', adminMiddleware, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
     const state = adminState.get(ctx.from!.id);
     if (!state || state.action !== 'srv_form') return;
     
@@ -329,7 +327,6 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:gate_save', adminMiddleware, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
     const state = adminState.get(ctx.from!.id);
     if (!state || state.action !== 'gate_form') return;
     
@@ -376,7 +373,6 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery('admin:trial_save', adminMiddleware, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
     const state = adminState.get(ctx.from!.id);
     if (!state || state.action !== 'trial_form') return;
     
