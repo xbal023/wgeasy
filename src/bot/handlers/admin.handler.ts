@@ -26,6 +26,13 @@ export interface PackageBuilderData {
   awaitingField?: 'name' | 'durationDay' | 'price' | 'maxDevices';
 }
 
+export interface GateBuilderData {
+  chatName?: string;
+  chatUrl?: string;
+  chatId?: string;
+  awaitingField?: 'chatName' | 'chatUrl' | 'chatId';
+}
+
 const adminState = new Map<number, { action: string; data?: any }>();
 
 export const registerAdminHandler = (bot: Bot<MyContext>) => {
@@ -296,6 +303,55 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     await ctx.editMessageReplyMarkup({ reply_markup: adminSettingsKeyboard(ctx.t, !isGateActive) }).catch(() => {});
   });
 
+  bot.callbackQuery('admin:gate_config', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const { getDynamicConfig } = require('../../utils/config.util');
+    const chatName = await getDynamicConfig('gate_chat_name', '');
+    const chatUrl = await getDynamicConfig('gate_chat_url', '');
+    const chatId = await getDynamicConfig('gate_chat_id', '');
+    adminState.set(ctx.from!.id, { action: 'gate_form', data: { chatName, chatUrl, chatId } });
+    await renderGateBuilder(ctx);
+  });
+
+  bot.callbackQuery(/^admin:gate_set:(chatName|chatUrl|chatId)$/, adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const field = ctx.match[1] as GateBuilderData['awaitingField'];
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'gate_form') return;
+    
+    (state.data as GateBuilderData).awaitingField = field;
+    await renderGateBuilder(ctx);
+  });
+
+  bot.callbackQuery('admin:gate_save', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'gate_form') return;
+    
+    const data = state.data as GateBuilderData;
+    if (!data.chatName || !data.chatUrl || !data.chatId) {
+      await ctx.answerCallbackQuery({ text: '❌ Harap lengkapi semua data sebelum menyimpan!', show_alert: true }).catch(() => {});
+      return;
+    }
+
+    try {
+      const { setDynamicConfig } = require('../../utils/config.util');
+      await setDynamicConfig('gate_chat_name', data.chatName);
+      await setDynamicConfig('gate_chat_url', data.chatUrl);
+      await setDynamicConfig('gate_chat_id', data.chatId);
+      
+      adminState.delete(ctx.from!.id);
+      await ctx.answerCallbackQuery({ text: '✅ Gate Config berhasil disimpan!', show_alert: true }).catch(() => {});
+      
+      const { getDynamicConfig } = require('../../utils/config.util');
+      const isGateActiveStr = await getDynamicConfig('gate_active', 'true');
+      const text = ctx.t('admin_settings');
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminSettingsKeyboard(ctx.t, isGateActiveStr === 'true') }).catch(() => {});
+    } catch (err: any) {
+      await ctx.answerCallbackQuery({ text: '❌ Error: ' + err.message, show_alert: true }).catch(() => {});
+    }
+  });
+
   bot.callbackQuery('admin:cancel_action', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
     adminState.delete(ctx.from!.id);
@@ -314,6 +370,17 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     if (!ctx.from) return next();
     const state = adminState.get(ctx.from.id);
     if (!state) return next();
+
+    if (state.action === 'gate_form' && ctx.message?.text) {
+      const data = state.data as GateBuilderData;
+      if (data.awaitingField) {
+        data[data.awaitingField] = ctx.message.text;
+        delete data.awaitingField;
+        await ctx.deleteMessage().catch(() => {});
+        await renderGateBuilder(ctx);
+      }
+      return;
+    }
 
     if (state.action === 'broadcast') {
       adminState.delete(ctx.from.id);
@@ -482,6 +549,31 @@ async function renderPackageBuilder(ctx: MyContext) {
     .text('📝 Max Devices', 'admin:pkg_set:maxDevices').row()
     .text('💾 SIMPAN', 'admin:pkg_save')
     .text('❌ BATAL', 'admin:cancel_action');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+}
+
+async function renderGateBuilder(ctx: MyContext) {
+  const state = adminState.get(ctx.from!.id);
+  if (!state || state.action !== 'gate_form') return;
+  const data = state.data as GateBuilderData;
+  let text = '⛩ <b>Gate Configuration</b>\n\n';
+  text += `📢 Nama Channel: <code>${data.chatName || '[Belum diisi]'}</code>\n`;
+  text += `🔗 URL Channel: <code>${data.chatUrl || '[Belum diisi]'}</code>\n`;
+  text += `🆔 Chat ID: <code>${data.chatId || '[Belum diisi]'}</code>\n\n`;
+
+  if (data.awaitingField) {
+    text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
+  } else {
+    text += `<i>Silakan edit kolom di bawah atau klik SIMPAN jika sudah selesai.</i>\n<i>Pastikan bot sudah dimasukkan sebagai admin ke channel/group tersebut!</i>`;
+  }
+
+  const kb = new InlineKeyboard()
+    .text('📝 Edit Nama', 'admin:gate_set:chatName').row()
+    .text('📝 Edit URL', 'admin:gate_set:chatUrl').row()
+    .text('📝 Edit ID', 'admin:gate_set:chatId').row()
+    .text('💾 SIMPAN', 'admin:gate_save')
+    .text('❌ BATAL', 'admin:settings');
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
 }

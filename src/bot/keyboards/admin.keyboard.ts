@@ -12,6 +12,7 @@ export const adminKeyboard = (t: (key: TranslationKey) => string) => {
 
 export const adminSettingsKeyboard = (t: (key: TranslationKey) => string, isGateActive: boolean) => {
   return new InlineKeyboard()
-    .text(isGateActive ? t('btn_admin_gate_on') : t('btn_admin_gate_off'), 'admin:toggle_gate').row()
+    .text(isGateActive ? t('btn_admin_gate_on') : t('btn_admin_gate_off'), 'admin:toggle_gate')
+    .text('⚙️ Config Gate', 'admin:gate_config').row()
     .text(t('btn_back'), 'admin:main');
 };
