@@ -33,6 +33,11 @@ export interface GateBuilderData {
   awaitingField?: 'chatName' | 'chatUrl' | 'chatId';
 }
 
+export interface TrialBuilderData {
+  trialDay?: number;
+  awaitingField?: 'trialDay';
+}
+
 const adminState = new Map<number, { action: string; data?: any }>();
 
 export const registerAdminHandler = (bot: Bot<MyContext>) => {
@@ -352,6 +357,51 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     }
   });
 
+  bot.callbackQuery('admin:trial_config', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const { getDynamicConfig } = require('../../utils/config.util');
+    const trialDayStr = await getDynamicConfig('trial_day', '1');
+    const trialDay = parseInt(trialDayStr) || 1;
+    adminState.set(ctx.from!.id, { action: 'trial_form', data: { trialDay } });
+    await renderTrialBuilder(ctx);
+  });
+
+  bot.callbackQuery('admin:trial_set:trialDay', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'trial_form') return;
+    
+    (state.data as TrialBuilderData).awaitingField = 'trialDay';
+    await renderTrialBuilder(ctx);
+  });
+
+  bot.callbackQuery('admin:trial_save', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'trial_form') return;
+    
+    const data = state.data as TrialBuilderData;
+    if (!data.trialDay) {
+      await ctx.answerCallbackQuery({ text: '❌ Harap isi durasi trial!', show_alert: true }).catch(() => {});
+      return;
+    }
+
+    try {
+      const { setDynamicConfig } = require('../../utils/config.util');
+      await setDynamicConfig('trial_day', data.trialDay.toString());
+      
+      adminState.delete(ctx.from!.id);
+      await ctx.answerCallbackQuery({ text: '✅ Trial Config berhasil disimpan!', show_alert: true }).catch(() => {});
+      
+      const { getDynamicConfig } = require('../../utils/config.util');
+      const isGateActiveStr = await getDynamicConfig('gate_active', 'true');
+      const text = ctx.t('admin_settings');
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminSettingsKeyboard(ctx.t, isGateActiveStr === 'true') }).catch(() => {});
+    } catch (err: any) {
+      await ctx.answerCallbackQuery({ text: '❌ Error: ' + err.message, show_alert: true }).catch(() => {});
+    }
+  });
+
   bot.callbackQuery('admin:cancel_action', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
     adminState.delete(ctx.from!.id);
@@ -384,6 +434,20 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
         delete data.awaitingField;
         await ctx.deleteMessage().catch(() => {});
         await renderGateBuilder(ctx);
+      }
+      return;
+    }
+
+    if (state.action === 'trial_form' && ctx.message?.text) {
+      const data = state.data as TrialBuilderData;
+      if (data.awaitingField) {
+        const val = parseInt(ctx.message.text);
+        if (!isNaN(val)) {
+          data[data.awaitingField] = val;
+        }
+        delete data.awaitingField;
+        await ctx.deleteMessage().catch(() => {});
+        await renderTrialBuilder(ctx);
       }
       return;
     }
@@ -582,6 +646,27 @@ async function renderGateBuilder(ctx: MyContext) {
     .text('📝 Edit URL', 'admin:gate_set:chatUrl').row()
     .text('📝 Edit ID', 'admin:gate_set:chatId').row()
     .text('💾 SIMPAN', 'admin:gate_save')
+    .text('❌ BATAL', 'admin:settings');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+}
+
+async function renderTrialBuilder(ctx: MyContext) {
+  const state = adminState.get(ctx.from!.id);
+  if (!state || state.action !== 'trial_form') return;
+  const data = state.data as TrialBuilderData;
+  let text = '⏳ <b>Trial Configuration</b>\n\n';
+  text += `📅 Durasi Trial: <code>${data.trialDay || '[Belum diisi]'}</code> hari\n\n`;
+
+  if (data.awaitingField) {
+    text += `<i>Menunggu balasan Anda untuk: <b>Durasi Trial (angka)</b>...</i>`;
+  } else {
+    text += `<i>Silakan edit kolom di bawah atau klik SIMPAN jika sudah selesai.</i>`;
+  }
+
+  const kb = new InlineKeyboard()
+    .text('📝 Edit Durasi', 'admin:trial_set:trialDay').row()
+    .text('💾 SIMPAN', 'admin:trial_save')
     .text('❌ BATAL', 'admin:settings');
 
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
