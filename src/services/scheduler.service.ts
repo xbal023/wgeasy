@@ -27,7 +27,7 @@ export const startScheduler = () => {
       
       for (const adminId of config.ADMIN_TELEGRAM_IDS) {
         await bot.api.sendDocument(adminId, new InputFile(filePath), {
-          caption: `💾 <b>Daily Database Backup</b>\n📅 Tanggal: ${dateStr}\n\nBackup otomatis dari server Irminsul Network.`,
+          caption: `💾 <b>Daily Database Backup</b>\n📅 Tanggal: ${dateStr}\n\nBackup otomatis dari server Yggdrasil.`,
           parse_mode: 'HTML'
         });
       }
