@@ -366,6 +366,12 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminKeyboard(ctx.t) }).catch(() => {});
   });
 
+  bot.callbackQuery('admin:close', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    adminState.delete(ctx.from!.id);
+    await ctx.deleteMessage().catch(() => {});
+  });
+
   bot.on('message', async (ctx, next) => {
     if (!ctx.from) return next();
     const state = adminState.get(ctx.from.id);
@@ -563,7 +569,10 @@ async function renderGateBuilder(ctx: MyContext) {
   text += `🆔 Chat ID: <code>${data.chatId || '[Belum diisi]'}</code>\n\n`;
 
   if (data.awaitingField) {
-    text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
+    text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>\n`;
+    if (data.awaitingField === 'chatId') {
+      text += `\n💡 <b>Tips</b>: Anda bisa mendapatkan Chat ID dengan mengirim / mem-forward pesan dari grup/channel ke bot seperti @userinfobot atau @raw_data_bot, ID biasanya berawalan minus (contoh: <code>-100123456789</code>).`;
+    }
   } else {
     text += `<i>Silakan edit kolom di bawah atau klik SIMPAN jika sudah selesai.</i>\n<i>Pastikan bot sudah dimasukkan sebagai admin ke channel/group tersebut!</i>`;
   }
