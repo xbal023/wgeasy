@@ -29,13 +29,13 @@ export const id = {
   lang_changed: '✅ Bahasa telah diubah ke Bahasa Indonesia.',
 
   start_greeting: 'Halo, {name}! 👋',
-  start_welcome: '━━━━━━━━━━━━━━━━━━━━━\n🌐  <b>Selamat datang di {botName}!</b>\n     <i>Welcome to {botName}!</i>\n━━━━━━━━━━━━━━━━━━━━━\n\n{greeting}\n\nNikmati internet bebas & aman bersama kami.\n<i>Enjoy fast & secure internet with us.</i>\n\n🔒 WireGuard Protocol\n⚡ Server Anti Lelet\n💳 Bayar QRIS, mudah dan cepat!\n\nPilih menu di bawah ya! 👇\n<i>Pick a menu below!</i> 👇',
+  start_welcome: '━━━━━━━━━━━━━━━━━━━━━\n🌐  <b>Selamat datang di {botName}!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{greeting}\n\nNikmati internet bebas & aman bersama kami.\n\n🔒 WireGuard Protocol\n⚡ Server Anti Lelet\n💳 Bayar QRIS, mudah dan cepat!\n\nPilih menu di bawah ya! 👇',
 
-  gate_message: '🔐  <b>Akses Terbatas</b>\n     <i>Access Required</i>\n\nHei! Sebelum menggunakan bot ini, silahkan bergabung kedalam komunitas!\n<i>Hey! To use this bot, please join our\ncommunity first!</i>\n\n<b>Group:</b> {chatName}\n\nIni cepat dan gratis!\n<i>It\'s quick and free!</i>',
+  gate_message: '🔐  <b>Akses Terbatas</b>\n\nHei! Sebelum menggunakan bot ini, silahkan bergabung kedalam komunitas!\n\n<b>Group:</b> {chatName}\n\nIni cepat dan gratis!',
 
-  order_choose_server: '🌍  <b>Pilih Server VPN</b>\n     <i>Choose your server</i>\n\nPilih lokasi yang paling dekat sama kamu\nuntuk koneksi tercepat! ⚡\n<i>Pick the closest location for best speed!</i>',
-  order_choose_package: '📦  <b>Pilih Paket VPN</b>\n     <i>Choose your plan</i>\n\nServer: {serverFlag} {serverRegion} {serverName}',
-  order_confirm: '🧾  <b>Konfirmasi Order</b>\n     <i>Order Summary</i>\n\n┌─────────────────────────┐\n│ Server  : {serverFlag} {serverRegion}\n│ Paket   : {pkgName}\n│ Harga   : Rp {pkgPrice}\n│ Metode  : QRIS\n└─────────────────────────┘\n\nPastiin detailnya udah bener ya! ✅',
+  order_choose_server: '🌍  <b>Pilih Server VPN</b>\n\nPilih lokasi yang paling dekat sama kamu\nuntuk koneksi tercepat! ⚡',
+  order_choose_package: '📦  <b>Pilih Paket VPN</b>\n\nServer: {serverFlag} {serverRegion} {serverName}',
+  order_confirm: '🧾  <b>Konfirmasi Order</b>\n\n┌─────────────────────────┐\n│ Server  : {serverFlag} {serverRegion}\n│ Paket   : {pkgName}\n│ Harga   : Rp {pkgPrice}\n│ Metode  : QRIS\n└─────────────────────────┘\n\nPastiin detailnya udah bener ya! ✅',
   order_cancel: '✅ Order dibatalkan.',
   order_qr_ready: '💳  <b>Scan QR di bawah ini ya!</b>\n\nOrder ID: #{refId}\nTotal: Rp {amount}\nBerlaku: 60 menit\n\nSetelah bayar, akun VPN langsung aktif otomatis! 🚀',
   order_qr_failed: 'Maaf, gagal membuat QRIS pembayaran. Silakan coba lagi nanti.',

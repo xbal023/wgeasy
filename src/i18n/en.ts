@@ -31,9 +31,9 @@ export const en: typeof id = {
   lang_changed: '✅ Language changed to English.',
 
   start_greeting: 'Hello, {name}! 👋',
-  start_welcome: '━━━━━━━━━━━━━━━━━━━━━\n🌐  <b>Selamat datang di {botName}!</b>\n     <i>Welcome to {botName}!</i>\n━━━━━━━━━━━━━━━━━━━━━\n\n{greeting}\n\nNikmati internet bebas & aman bersama kami.\n<i>Enjoy fast & secure internet with us.</i>\n\n🔒 WireGuard Protocol\n⚡ Server Anti Lelet\n💳 Bayar QRIS, mudah dan cepat!\n\nPilih menu di bawah ya! 👇\n<i>Pick a menu below!</i> 👇',
+  start_welcome: '━━━━━━━━━━━━━━━━━━━━━\n🌐  <b>Welcome to {botName}!</b>\n━━━━━━━━━━━━━━━━━━━━━\n\n{greeting}\n\nEnjoy fast & secure internet with us.\n\n🔒 WireGuard Protocol\n⚡ Fast Servers\n💳 Easy QRIS Payment!\n\nPick a menu below! 👇',
 
-  gate_message: '🔐  <b>Akses Terbatas</b>\n     <i>Access Required</i>\n\nHei! Sebelum menggunakan bot ini, silahkan bergabung kedalam komunitas!\n<i>Hey! To use this bot, please join our\ncommunity first!</i>\n\n<b>Group:</b> {chatName}\n\nIni cepat dan gratis!\n<i>It\'s quick and free!</i>',
+  gate_message: '🔐  <b>Access Required</b>\n\nHey! To use this bot, please join our community first!\n\n<b>Group:</b> {chatName}\n\nIt\'s quick and free!',
 
   order_choose_server: '🌍  <b>Choose VPN Server</b>\n\nPick the closest location for the best speed! ⚡',
   order_choose_package: '📦  <b>Choose VPN Plan</b>\n\nServer: {serverFlag} {serverRegion} {serverName}',
