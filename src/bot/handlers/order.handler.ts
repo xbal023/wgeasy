@@ -22,7 +22,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery(/^order:server:(\d+)$/, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
     const serverId = Number(ctx.match[1]);
-    const packages = await prisma.package.findMany({ where: { isActive: true } });
+    const packages = await prisma.package.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
     const server = await prisma.server.findUnique({ where: { id: serverId } });
 
     if (!server) return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));

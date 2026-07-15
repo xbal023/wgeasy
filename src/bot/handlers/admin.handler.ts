@@ -38,24 +38,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
   bot.callbackQuery('admin:packages', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
-    const packages = await prisma.package.findMany({ orderBy: { id: 'asc' } });
-    let text = '📦 <b>Kelola Paket VPN</b>\n\n';
-    if (packages.length === 0) {
-      text += '<i>Belum ada paket. Tambahkan paket baru!</i>';
-    } else {
-      packages.forEach((pkg, i) => {
-        const status = pkg.isActive ? '✅' : '❌';
-        text += `${i + 1}. ${status} <b>${pkg.name}</b>\n   ${pkg.durationDay} hari • Rp ${pkg.price.toLocaleString('id-ID')} • ${pkg.maxDevices} device\n\n`;
-      });
-    }
-    const kb = new InlineKeyboard();
-    packages.forEach((pkg) => {
-      kb.text(`${pkg.isActive ? '❌' : '✅'} ${pkg.name}`, `admin:pkg_toggle:${pkg.id}`)
-        .text(`🗑 Hapus`, `admin:pkg_del:${pkg.id}`).row();
-    });
-    kb.text('➕ Tambah Paket', 'admin:pkg_add').row();
-    kb.text('🔙 Kembali', 'admin:main');
-    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+    await refreshPackageList(ctx);
   });
 
   bot.callbackQuery('admin:pkg_add', adminMiddleware, async (ctx) => {
@@ -86,6 +69,39 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     await ctx.editMessageText(`⚠️ <b>Konfirmasi Hapus</b>\n\nYakin ingin menghapus paket #${pkgId}?`, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
   });
 
+  bot.callbackQuery(/^admin:pkg_up:(\d+)$/, adminMiddleware, async (ctx) => {
+    const pkgId = Number(ctx.match[1]);
+    const pkg = await prisma.package.findUnique({ where: { id: pkgId } });
+    if (!pkg) return;
+    const prevPkg = await prisma.package.findFirst({
+      where: { sortOrder: { lt: pkg.sortOrder } },
+      orderBy: { sortOrder: 'desc' }
+    });
+    if (prevPkg) {
+      await prisma.$transaction([
+        prisma.package.update({ where: { id: pkg.id }, data: { sortOrder: prevPkg.sortOrder } }),
+        prisma.package.update({ where: { id: prevPkg.id }, data: { sortOrder: pkg.sortOrder } })
+      ]);
+    }
+    await refreshPackageList(ctx);
+  });
+
+  bot.callbackQuery(/^admin:pkg_down:(\d+)$/, adminMiddleware, async (ctx) => {
+    const pkgId = Number(ctx.match[1]);
+    const pkg = await prisma.package.findUnique({ where: { id: pkgId } });
+    if (!pkg) return;
+    const nextPkg = await prisma.package.findFirst({
+      where: { sortOrder: { gt: pkg.sortOrder } },
+      orderBy: { sortOrder: 'asc' }
+    });
+    if (nextPkg) {
+      await prisma.$transaction([
+        prisma.package.update({ where: { id: pkg.id }, data: { sortOrder: nextPkg.sortOrder } }),
+        prisma.package.update({ where: { id: nextPkg.id }, data: { sortOrder: pkg.sortOrder } })
+      ]);
+    }
+    await refreshPackageList(ctx);
+  });
   bot.callbackQuery(/^admin:pkg_del_confirm:(\d+)$/, adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery('✅ Paket dihapus').catch(() => {});
     const pkgId = Number(ctx.match[1]);
@@ -232,7 +248,9 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
         return;
       }
 
-      await prisma.package.create({ data: { name, durationDay, price, maxDevices } });
+      const lastPkg = await prisma.package.findFirst({ orderBy: { sortOrder: 'desc' } });
+      const nextSortOrder = lastPkg ? lastPkg.sortOrder + 1 : 1;
+      await prisma.package.create({ data: { name, durationDay, price, maxDevices, sortOrder: nextSortOrder } });
       await ctx.reply(`✅ Paket <b>${name}</b> berhasil ditambahkan!\n\n📅 ${durationDay} hari\n💰 Rp ${price.toLocaleString('id-ID')}\n📱 ${maxDevices} device\n\nKetik /admin untuk kembali.`, { parse_mode: 'HTML' });
       return;
     }
@@ -257,7 +275,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 };
 
 async function refreshPackageList(ctx: MyContext) {
-  const packages = await prisma.package.findMany({ orderBy: { id: 'asc' } });
+  const packages = await prisma.package.findMany({ orderBy: { sortOrder: 'asc' } });
   let text = '📦 <b>Kelola Paket VPN</b>\n\n';
   if (packages.length === 0) {
     text += '<i>Belum ada paket.</i>';
@@ -269,7 +287,9 @@ async function refreshPackageList(ctx: MyContext) {
   }
   const kb = new InlineKeyboard();
   packages.forEach((pkg) => {
-    kb.text(`${pkg.isActive ? '❌' : '✅'} ${pkg.name}`, `admin:pkg_toggle:${pkg.id}`)
+    kb.text('⬆️', `admin:pkg_up:${pkg.id}`)
+      .text('⬇️', `admin:pkg_down:${pkg.id}`)
+      .text(`${pkg.isActive ? '❌' : '✅'} ${pkg.name}`, `admin:pkg_toggle:${pkg.id}`)
       .text(`🗑 Hapus`, `admin:pkg_del:${pkg.id}`).row();
   });
   kb.text('➕ Tambah Paket', 'admin:pkg_add').row();
