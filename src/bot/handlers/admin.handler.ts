@@ -76,7 +76,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
   bot.callbackQuery('admin:pkg_add', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
-    adminState.set(ctx.from!.id, { action: 'pkg_form', data: {} });
+    adminState.set(ctx.from!.id, { action: 'pkg_form', data: {}, messageId: ctx.msg?.message_id });
     await renderPackageBuilder(ctx);
   });
 
@@ -85,7 +85,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const pkgId = Number(ctx.match[1]);
     const pkg = await prisma.package.findUnique({ where: { id: pkgId } });
     if (!pkg) return;
-    adminState.set(ctx.from!.id, { action: 'pkg_form', data: { ...pkg } });
+    adminState.set(ctx.from!.id, { action: 'pkg_form', data: { ...pkg }, messageId: ctx.msg?.message_id });
     await renderPackageBuilder(ctx);
   });
 
@@ -203,7 +203,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
   bot.callbackQuery('admin:srv_add', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
-    adminState.set(ctx.from!.id, { action: 'srv_form', data: {} });
+    adminState.set(ctx.from!.id, { action: 'srv_form', data: {}, messageId: ctx.msg?.message_id });
     await renderServerBuilder(ctx);
   });
 
@@ -212,7 +212,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const srvId = Number(ctx.match[1]);
     const srv = await prisma.server.findUnique({ where: { id: srvId } });
     if (!srv) return;
-    adminState.set(ctx.from!.id, { action: 'srv_form', data: { ...srv } });
+    adminState.set(ctx.from!.id, { action: 'srv_form', data: { ...srv }, messageId: ctx.msg?.message_id });
     await renderServerBuilder(ctx);
   });
 
