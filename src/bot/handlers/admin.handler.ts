@@ -5,7 +5,28 @@ import { adminKeyboard, adminSettingsKeyboard } from '../keyboards/admin.keyboar
 import { logger } from '../../utils/logger';
 import { MyContext } from '../index';
 
-const adminState = new Map<number, { action: string; data?: unknown }>();
+export interface ServerBuilderData {
+  id?: number;
+  name?: string;
+  region?: string;
+  flag?: string;
+  host?: string;
+  apiUrl?: string;
+  apiPassword?: string;
+  maxPeers?: number;
+  awaitingField?: 'name' | 'region' | 'flag' | 'host' | 'apiUrl' | 'apiPassword' | 'maxPeers';
+}
+
+export interface PackageBuilderData {
+  id?: number;
+  name?: string;
+  durationDay?: number;
+  price?: number;
+  maxDevices?: number;
+  awaitingField?: 'name' | 'durationDay' | 'price' | 'maxDevices';
+}
+
+const adminState = new Map<number, { action: string; data?: any }>();
 
 export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
@@ -43,12 +64,66 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
   bot.callbackQuery('admin:pkg_add', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
-    adminState.set(ctx.from!.id, { action: 'pkg_add' });
-    const kb = new InlineKeyboard().text('❌ Batal', 'admin:cancel_action');
-    await ctx.editMessageText(
-      '➕ <b>Tambah Paket Baru</b>\n\nKirim data paket dengan format:\n\n<code>NamaPaket|Durasi(hari)|Harga|MaxDevice</code>\n\nContoh:\n<code>Weekly|7|10000|1</code>\n<code>Monthly|30|25000|2</code>',
-      { parse_mode: 'HTML', reply_markup: kb }
-    ).catch(() => {});
+    adminState.set(ctx.from!.id, { action: 'pkg_form', data: {} });
+    await renderPackageBuilder(ctx);
+  });
+
+  bot.callbackQuery(/^admin:pkg_edit:(\d+)$/, adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const pkgId = Number(ctx.match[1]);
+    const pkg = await prisma.package.findUnique({ where: { id: pkgId } });
+    if (!pkg) return;
+    adminState.set(ctx.from!.id, { action: 'pkg_form', data: { ...pkg } });
+    await renderPackageBuilder(ctx);
+  });
+
+  bot.callbackQuery(/^admin:pkg_set:(name|durationDay|price|maxDevices)$/, adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const field = ctx.match[1] as PackageBuilderData['awaitingField'];
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'pkg_form') return;
+    
+    (state.data as PackageBuilderData).awaitingField = field;
+    await renderPackageBuilder(ctx);
+  });
+
+  bot.callbackQuery('admin:pkg_save', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'pkg_form') return;
+    
+    const data = state.data as PackageBuilderData;
+    if (!data.name || !data.durationDay || !data.price || !data.maxDevices) {
+      await ctx.answerCallbackQuery({ text: '❌ Harap lengkapi semua data sebelum menyimpan!', show_alert: true }).catch(() => {});
+      return;
+    }
+
+    try {
+      if (data.id) {
+        await prisma.package.update({
+          where: { id: data.id },
+          data: {
+            name: data.name, durationDay: data.durationDay,
+            price: data.price, maxDevices: data.maxDevices
+          }
+        });
+      } else {
+        const lastPkg = await prisma.package.findFirst({ orderBy: { sortOrder: 'desc' } });
+        const nextSortOrder = lastPkg ? lastPkg.sortOrder + 1 : 1;
+        await prisma.package.create({
+          data: {
+            name: data.name, durationDay: data.durationDay,
+            price: data.price, maxDevices: data.maxDevices,
+            sortOrder: nextSortOrder
+          }
+        });
+      }
+      adminState.delete(ctx.from!.id);
+      await ctx.answerCallbackQuery({ text: '✅ Paket berhasil disimpan!', show_alert: true }).catch(() => {});
+      await refreshPackageList(ctx);
+    } catch (err: any) {
+      await ctx.answerCallbackQuery({ text: '❌ Error: ' + err.message, show_alert: true }).catch(() => {});
+    }
   });
 
   bot.callbackQuery(/^admin:pkg_toggle:(\d+)$/, adminMiddleware, async (ctx) => {
@@ -111,34 +186,70 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
 
   bot.callbackQuery('admin:servers', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
-    const servers = await prisma.server.findMany({ orderBy: { id: 'asc' } });
-    let text = '🌍 <b>Kelola Server VPN</b>\n\n';
-    if (servers.length === 0) {
-      text += '<i>Belum ada server. Tambahkan server baru!</i>';
-    } else {
-      servers.forEach((srv, i) => {
-        const status = srv.isActive ? '✅' : '❌';
-        text += `${i + 1}. ${status} ${srv.flag} <b>${srv.name}</b> — ${srv.region}\n   Host: <code>${srv.host}</code>\n   API: <code>${srv.apiUrl}</code>\n   Max Peers: ${srv.maxPeers}\n\n`;
-      });
-    }
-    const kb = new InlineKeyboard();
-    servers.forEach((srv) => {
-      kb.text(`${srv.isActive ? '❌' : '✅'} ${srv.flag} ${srv.name}`, `admin:srv_toggle:${srv.id}`)
-        .text(`🗑 Hapus`, `admin:srv_del:${srv.id}`).row();
-    });
-    kb.text('➕ Tambah Server', 'admin:srv_add').row();
-    kb.text('🔙 Kembali', 'admin:main');
-    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+    await refreshServerList(ctx);
   });
 
   bot.callbackQuery('admin:srv_add', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
-    adminState.set(ctx.from!.id, { action: 'srv_add' });
-    const kb = new InlineKeyboard().text('❌ Batal', 'admin:cancel_action');
-    await ctx.editMessageText(
-      '➕ <b>Tambah Server Baru</b>\n\nKirim data server dengan format:\n\n<code>Nama|Region|Flag|Host|ApiUrl|ApiPassword|MaxPeers</code>\n\nContoh:\n<code>SG-1|Singapore|🇸🇬|vpn-sg.domain.com|http://localhost:51821|password123|50</code>',
-      { parse_mode: 'HTML', reply_markup: kb }
-    ).catch(() => {});
+    adminState.set(ctx.from!.id, { action: 'srv_form', data: {} });
+    await renderServerBuilder(ctx);
+  });
+
+  bot.callbackQuery(/^admin:srv_edit:(\d+)$/, adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const srvId = Number(ctx.match[1]);
+    const srv = await prisma.server.findUnique({ where: { id: srvId } });
+    if (!srv) return;
+    adminState.set(ctx.from!.id, { action: 'srv_form', data: { ...srv } });
+    await renderServerBuilder(ctx);
+  });
+
+  bot.callbackQuery(/^admin:srv_set:(name|region|flag|host|apiUrl|apiPassword|maxPeers)$/, adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const field = ctx.match[1] as ServerBuilderData['awaitingField'];
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'srv_form') return;
+    
+    (state.data as ServerBuilderData).awaitingField = field;
+    await renderServerBuilder(ctx);
+  });
+
+  bot.callbackQuery('admin:srv_save', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'srv_form') return;
+    
+    const data = state.data as ServerBuilderData;
+    if (!data.name || !data.region || !data.flag || !data.host || !data.apiUrl || !data.apiPassword) {
+      await ctx.answerCallbackQuery({ text: '❌ Harap lengkapi semua data sebelum menyimpan!', show_alert: true }).catch(() => {});
+      return;
+    }
+
+    try {
+      if (data.id) {
+        await prisma.server.update({
+          where: { id: data.id },
+          data: {
+            name: data.name, region: data.region, flag: data.flag,
+            host: data.host, apiUrl: data.apiUrl, apiPassword: data.apiPassword,
+            maxPeers: data.maxPeers || 50
+          }
+        });
+      } else {
+        await prisma.server.create({
+          data: {
+            name: data.name, region: data.region, flag: data.flag,
+            host: data.host, apiUrl: data.apiUrl, apiPassword: data.apiPassword,
+            maxPeers: data.maxPeers || 50
+          }
+        });
+      }
+      adminState.delete(ctx.from!.id);
+      await ctx.answerCallbackQuery({ text: '✅ Server berhasil disimpan!', show_alert: true }).catch(() => {});
+      await refreshServerList(ctx);
+    } catch (err: any) {
+      await ctx.answerCallbackQuery({ text: '❌ Error: ' + err.message, show_alert: true }).catch(() => {});
+    }
   });
 
   bot.callbackQuery(/^admin:srv_toggle:(\d+)$/, adminMiddleware, async (ctx) => {
@@ -231,42 +342,37 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
       return;
     }
 
-    if (state.action === 'pkg_add' && ctx.message?.text) {
-      adminState.delete(ctx.from.id);
-      const parts = ctx.message.text.split('|').map(s => s.trim());
-      if (parts.length < 4) {
-        await ctx.reply('❌ Format salah! Gunakan:\n<code>Nama|Durasi|Harga|MaxDevice</code>', { parse_mode: 'HTML' });
-        return;
+    if (state.action === 'srv_form' && ctx.message?.text) {
+      const data = state.data as ServerBuilderData;
+      if (data.awaitingField) {
+        if (data.awaitingField === 'maxPeers') {
+          const val = parseInt(ctx.message.text);
+          if (isNaN(val)) return next();
+          data.maxPeers = val;
+        } else {
+          data[data.awaitingField] = ctx.message.text;
+        }
+        delete data.awaitingField;
+        await ctx.deleteMessage().catch(() => {});
+        await renderServerBuilder(ctx);
       }
-      const [name, durationStr, priceStr, devicesStr] = parts;
-      const durationDay = parseInt(durationStr);
-      const price = parseInt(priceStr);
-      const maxDevices = parseInt(devicesStr) || 1;
-
-      if (!name || isNaN(durationDay) || isNaN(price)) {
-        await ctx.reply('❌ Data tidak valid! Pastikan durasi dan harga berupa angka.');
-        return;
-      }
-
-      const lastPkg = await prisma.package.findFirst({ orderBy: { sortOrder: 'desc' } });
-      const nextSortOrder = lastPkg ? lastPkg.sortOrder + 1 : 1;
-      await prisma.package.create({ data: { name, durationDay, price, maxDevices, sortOrder: nextSortOrder } });
-      await ctx.reply(`✅ Paket <b>${name}</b> berhasil ditambahkan!\n\n📅 ${durationDay} hari\n💰 Rp ${price.toLocaleString('id-ID')}\n📱 ${maxDevices} device\n\nKetik /admin untuk kembali.`, { parse_mode: 'HTML' });
       return;
     }
 
-    if (state.action === 'srv_add' && ctx.message?.text) {
-      adminState.delete(ctx.from.id);
-      const parts = ctx.message.text.split('|').map(s => s.trim());
-      if (parts.length < 7) {
-        await ctx.reply('❌ Format salah! Gunakan:\n<code>Nama|Region|Flag|Host|ApiUrl|ApiPassword|MaxPeers</code>', { parse_mode: 'HTML' });
-        return;
+    if (state.action === 'pkg_form' && ctx.message?.text) {
+      const data = state.data as PackageBuilderData;
+      if (data.awaitingField) {
+        if (data.awaitingField === 'name') {
+          data.name = ctx.message.text;
+        } else {
+          const val = parseInt(ctx.message.text);
+          if (isNaN(val)) return next();
+          data[data.awaitingField] = val;
+        }
+        delete data.awaitingField;
+        await ctx.deleteMessage().catch(() => {});
+        await renderPackageBuilder(ctx);
       }
-      const [name, region, flag, host, apiUrl, apiPassword, maxPeersStr] = parts;
-      const maxPeers = parseInt(maxPeersStr) || 50;
-
-      await prisma.server.create({ data: { name, region, flag, host, apiUrl, apiPassword, maxPeers } });
-      await ctx.reply(`✅ Server <b>${flag} ${name}</b> berhasil ditambahkan!\n\n🌍 ${region}\n🔗 ${host}\n🔌 ${apiUrl}\n👥 Max ${maxPeers} peers\n\nKetik /admin untuk kembali.`, { parse_mode: 'HTML' });
       return;
     }
 
@@ -290,6 +396,7 @@ async function refreshPackageList(ctx: MyContext) {
     kb.text('⬆️', `admin:pkg_up:${pkg.id}`)
       .text('⬇️', `admin:pkg_down:${pkg.id}`)
       .text(`${pkg.isActive ? '❌' : '✅'} ${pkg.name}`, `admin:pkg_toggle:${pkg.id}`)
+      .text(`✏️ Edit`, `admin:pkg_edit:${pkg.id}`)
       .text(`🗑 Hapus`, `admin:pkg_del:${pkg.id}`).row();
   });
   kb.text('➕ Tambah Paket', 'admin:pkg_add').row();
@@ -311,9 +418,70 @@ async function refreshServerList(ctx: MyContext) {
   const kb = new InlineKeyboard();
   servers.forEach((srv) => {
     kb.text(`${srv.isActive ? '❌' : '✅'} ${srv.flag} ${srv.name}`, `admin:srv_toggle:${srv.id}`)
+      .text(`✏️ Edit`, `admin:srv_edit:${srv.id}`)
       .text(`🗑 Hapus`, `admin:srv_del:${srv.id}`).row();
   });
   kb.text('➕ Tambah Server', 'admin:srv_add').row();
   kb.text('🔙 Kembali', 'admin:main');
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+}
+
+async function renderServerBuilder(ctx: MyContext) {
+  const state = adminState.get(ctx.from!.id);
+  if (!state || state.action !== 'srv_form') return;
+  const data = state.data as ServerBuilderData;
+  let text = '🛠 <b>Server Builder</b>\n\n';
+  text += `🏷 Nama: <code>${data.name || '[Belum diisi]'}</code>\n`;
+  text += `🌍 Region: <code>${data.region || '[Belum diisi]'}</code>\n`;
+  text += `🏴 Bendera: <code>${data.flag || '[Belum diisi]'}</code>\n`;
+  text += `🌐 Host: <code>${data.host || '[Belum diisi]'}</code>\n`;
+  text += `🔗 API URL: <code>${data.apiUrl || '[Belum diisi]'}</code>\n`;
+  text += `🔑 API Pass: <code>${data.apiPassword ? '***' : '[Belum diisi]'}</code>\n`;
+  text += `👥 Max Peers: <code>${data.maxPeers || 50}</code>\n\n`;
+
+  if (data.awaitingField) {
+    text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
+  } else {
+    text += `<i>Silakan edit kolom di bawah atau klik SIMPAN jika sudah selesai.</i>`;
+  }
+
+  const kb = new InlineKeyboard()
+    .text('📝 Nama', 'admin:srv_set:name')
+    .text('📝 Region', 'admin:srv_set:region')
+    .text('📝 Bendera', 'admin:srv_set:flag').row()
+    .text('📝 Host', 'admin:srv_set:host')
+    .text('📝 API URL', 'admin:srv_set:apiUrl').row()
+    .text('📝 API Pass', 'admin:srv_set:apiPassword')
+    .text('📝 Max Peers', 'admin:srv_set:maxPeers').row()
+    .text('💾 SIMPAN', 'admin:srv_save')
+    .text('❌ BATAL', 'admin:cancel_action');
+
+  await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+}
+
+async function renderPackageBuilder(ctx: MyContext) {
+  const state = adminState.get(ctx.from!.id);
+  if (!state || state.action !== 'pkg_form') return;
+  const data = state.data as PackageBuilderData;
+  let text = '🛠 <b>Package Builder</b>\n\n';
+  text += `🏷 Nama Paket: <code>${data.name || '[Belum diisi]'}</code>\n`;
+  text += `📅 Durasi (hari): <code>${data.durationDay || '[Belum diisi]'}</code>\n`;
+  text += `💰 Harga (Rp): <code>${data.price ? data.price.toLocaleString('id-ID') : '[Belum diisi]'}</code>\n`;
+  text += `📱 Max Devices: <code>${data.maxDevices || '[Belum diisi]'}</code>\n\n`;
+
+  if (data.awaitingField) {
+    text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
+  } else {
+    text += `<i>Silakan edit kolom di bawah atau klik SIMPAN jika sudah selesai.</i>`;
+  }
+
+  const kb = new InlineKeyboard()
+    .text('📝 Nama', 'admin:pkg_set:name')
+    .text('📝 Durasi', 'admin:pkg_set:durationDay').row()
+    .text('📝 Harga', 'admin:pkg_set:price')
+    .text('📝 Max Devices', 'admin:pkg_set:maxDevices').row()
+    .text('💾 SIMPAN', 'admin:pkg_save')
+    .text('❌ BATAL', 'admin:cancel_action');
+
   await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
 }
