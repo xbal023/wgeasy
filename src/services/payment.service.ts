@@ -60,7 +60,8 @@ export class PaymentService {
       return response.data;
     } catch (error: unknown) {
       if (axios.isAxiosError(error)) {
-        throw new Error(`Payment API error: ${error.response?.data?.message || error.message}`);
+        const errorDetails = error.response?.data ? JSON.stringify(error.response.data) : error.message;
+        throw new Error(`Payment API error: ${errorDetails}`);
       }
       throw error;
     }
@@ -74,10 +75,13 @@ export class PaymentService {
       channel_code: 'QRIS',
       amount,
       ref_id: refId,
+      notify_url: `${config.APP_URL ? config.APP_URL.replace(/\/$/, '') : 'https://[DOMAIN-BOT-ANDA]'}/api/webhook/payment`,
       fee_direction: 'merchant',
       note,
       expires_in_minutes: expiresInMinutes,
-      customer,
+      customer_name: customer.name,
+      customer_email: customer.email,
+      customer_phone: customer.phone,
       metadata: products
     };
     return this.request(path, 'POST', body);

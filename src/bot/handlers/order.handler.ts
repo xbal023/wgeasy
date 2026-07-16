@@ -79,7 +79,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
         amount: order.amount,
         refId,
         customer: { name: order.user.fullName, email: 'admin@yggdrasil.com', phone: '081234567890' },
-        products: [{ product_thumbnail: 'https://xoftware.id/thumbnail.jpg', product_name: order.package.name, product_code: `pack-${order.packageId}`, product_url: 'https;//xoftware.id' }]
+        products: [{ product_thumbnail: 'https://xoftware.id/thumbnail.jpg', product_name: order.package.name, product_code: `pack-${order.packageId}`, product_url: 'https://xoftware.id' }]
       });
 
       await prisma.order.update({
