@@ -761,11 +761,14 @@ async function renderPaymentBuilder(ctx: MyContext) {
   const state = adminState.get(ctx.from!.id);
   if (!state || state.action !== 'payment_form') return;
   const data = state.data as PaymentBuilderData;
+  const { config } = require('../../config');
   let text = '💳 <b>Payment Configuration</b>\n\n';
   text += `🔑 API Key: <code>${data.apiKey ? '***' + data.apiKey.slice(-4) : '[Belum diisi]'}</code>\n`;
   text += `🛒 Merchant ID: <code>${data.merchantId || '[Belum diisi]'}</code>\n`;
   text += `🌐 Base URL: <code>${data.baseUrl || '[Belum diisi]'}</code>\n\n`;
-  text += `💡 <b>Info Webhook</b>:\nSilakan masukkan URL berikut di pengaturan Webhook Payment Gateway Anda:\n<code>https://[DOMAIN-BOT-ANDA]/api/webhook/payment</code>\n\n`;
+  
+  const appUrl = config.APP_URL ? config.APP_URL.replace(/\/$/, '') : 'https://[DOMAIN-BOT-ANDA]';
+  text += `💡 <b>Info Webhook</b>:\nSilakan masukkan URL berikut di pengaturan Webhook Payment Gateway Anda:\n<code>${appUrl}/api/webhook/payment</code>\n\n`;
 
   if (data.awaitingField) {
     text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
