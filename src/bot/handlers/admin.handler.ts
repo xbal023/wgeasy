@@ -38,6 +38,14 @@ export interface TrialBuilderData {
   awaitingField?: 'trialDay';
 }
 
+export interface PaymentBuilderData {
+  apiKey?: string;
+  webhookSecret?: string;
+  merchantId?: string;
+  baseUrl?: string;
+  awaitingField?: 'apiKey' | 'webhookSecret' | 'merchantId' | 'baseUrl';
+}
+
 const adminState = new Map<number, { action: string; data?: any; messageId?: number }>();
 
 export const registerAdminHandler = (bot: Bot<MyContext>) => {
@@ -398,6 +406,57 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     }
   });
 
+  bot.callbackQuery('admin:payment_config', adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const { getDynamicConfig } = require('../../utils/config.util');
+    const { config } = require('../../config');
+    const apiKey = await getDynamicConfig('payment_api_key', config.PAYMENT_API_KEY || '');
+    const webhookSecret = await getDynamicConfig('payment_webhook_secret', config.PAYMENT_WEBHOOK_SECRET || '');
+    const merchantId = await getDynamicConfig('payment_merchant_id', config.PAYMENT_MERCHANT_ID || '');
+    const baseUrl = await getDynamicConfig('payment_base_url', config.PAYMENT_BASE_URL || 'https://pay.xoftware.id');
+    adminState.set(ctx.from!.id, { action: 'payment_form', data: { apiKey, webhookSecret, merchantId, baseUrl }, messageId: ctx.msg?.message_id });
+    await renderPaymentBuilder(ctx);
+  });
+
+  bot.callbackQuery(/^admin:payment_set:(apiKey|webhookSecret|merchantId|baseUrl)$/, adminMiddleware, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => {});
+    const field = ctx.match[1] as PaymentBuilderData['awaitingField'];
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'payment_form') return;
+    
+    (state.data as PaymentBuilderData).awaitingField = field;
+    await renderPaymentBuilder(ctx);
+  });
+
+  bot.callbackQuery('admin:payment_save', adminMiddleware, async (ctx) => {
+    const state = adminState.get(ctx.from!.id);
+    if (!state || state.action !== 'payment_form') return;
+    
+    const data = state.data as PaymentBuilderData;
+    if (!data.apiKey || !data.webhookSecret || !data.merchantId || !data.baseUrl) {
+      await ctx.answerCallbackQuery({ text: '❌ Harap lengkapi semua data sebelum menyimpan!', show_alert: true }).catch(() => {});
+      return;
+    }
+
+    try {
+      const { setDynamicConfig } = require('../../utils/config.util');
+      await setDynamicConfig('payment_api_key', data.apiKey);
+      await setDynamicConfig('payment_webhook_secret', data.webhookSecret);
+      await setDynamicConfig('payment_merchant_id', data.merchantId);
+      await setDynamicConfig('payment_base_url', data.baseUrl);
+      
+      adminState.delete(ctx.from!.id);
+      await ctx.answerCallbackQuery({ text: '✅ Payment Config berhasil disimpan!', show_alert: true }).catch(() => {});
+      
+      const { getDynamicConfig: getDyn } = require('../../utils/config.util');
+      const isGateActiveStr = await getDyn('gate_active', 'true');
+      const text = ctx.t('admin_settings');
+      await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: adminSettingsKeyboard(ctx.t, isGateActiveStr === 'true') }).catch(() => {});
+    } catch (err: any) {
+      await ctx.answerCallbackQuery({ text: '❌ Error: ' + err.message, show_alert: true }).catch(() => {});
+    }
+  });
+
   bot.callbackQuery('admin:cancel_action', adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
     adminState.delete(ctx.from!.id);
@@ -681,6 +740,37 @@ async function renderTrialBuilder(ctx: MyContext) {
   const kb = new InlineKeyboard()
     .text('📝 Edit Durasi', 'admin:trial_set:trialDay').row()
     .text('💾 SIMPAN', 'admin:trial_save')
+    .text('❌ BATAL', 'admin:settings');
+
+  if (ctx.callbackQuery) {
+    await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  } else if (state.messageId && ctx.chat) {
+    await ctx.api.editMessageText(ctx.chat.id, state.messageId, text, { parse_mode: 'HTML', reply_markup: kb }).catch(() => {});
+  }
+}
+
+async function renderPaymentBuilder(ctx: MyContext) {
+  const state = adminState.get(ctx.from!.id);
+  if (!state || state.action !== 'payment_form') return;
+  const data = state.data as PaymentBuilderData;
+  let text = '💳 <b>Payment Configuration</b>\n\n';
+  text += `🔑 API Key: <code>${data.apiKey ? '***' + data.apiKey.slice(-4) : '[Belum diisi]'}</code>\n`;
+  text += `🔐 Webhook Secret: <code>${data.webhookSecret ? '***' + data.webhookSecret.slice(-4) : '[Belum diisi]'}</code>\n`;
+  text += `🛒 Merchant ID: <code>${data.merchantId || '[Belum diisi]'}</code>\n`;
+  text += `🌐 Base URL: <code>${data.baseUrl || '[Belum diisi]'}</code>\n\n`;
+
+  if (data.awaitingField) {
+    text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
+  } else {
+    text += `<i>Silakan edit kolom di bawah atau klik SIMPAN jika sudah selesai.</i>`;
+  }
+
+  const kb = new InlineKeyboard()
+    .text('📝 Edit API Key', 'admin:payment_set:apiKey').row()
+    .text('📝 Edit Webhook', 'admin:payment_set:webhookSecret').row()
+    .text('📝 Edit Merchant ID', 'admin:payment_set:merchantId').row()
+    .text('📝 Edit Base URL', 'admin:payment_set:baseUrl').row()
+    .text('💾 SIMPAN', 'admin:payment_save')
     .text('❌ BATAL', 'admin:settings');
 
   if (ctx.callbackQuery) {
