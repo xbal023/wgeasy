@@ -10,7 +10,7 @@ import { buildStartMessage } from "../messages/start.message"
 
 export const registerOrderHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery('menu:buy', async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery().catch(() => { });
     const servers = await prisma.server.findMany({ where: { isActive: true } });
     const text = ctx.t('order_choose_server');
 
@@ -20,7 +20,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^order:server:(\d+)$/, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery().catch(() => { });
     const serverId = Number(ctx.match[1]);
     const packages = await prisma.package.findMany({ where: { isActive: true }, orderBy: { sortOrder: 'asc' } });
     const server = await prisma.server.findUnique({ where: { id: serverId } });
@@ -35,7 +35,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^order:package:(\d+):(\d+)$/, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery().catch(() => { });
     const packageId = Number(ctx.match[1]);
     const serverId = Number(ctx.match[2]);
 
@@ -67,7 +67,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
   });
 
   bot.callbackQuery(/^order:pay:(\d+)$/, async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery().catch(() => { });
     const orderId = Number(ctx.match[1]);
     const order = await prisma.order.findUnique({ where: { id: orderId }, include: { user: true, package: true } });
 
@@ -79,7 +79,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
         amount: order.amount,
         refId,
         customer: { name: order.user.fullName, email: 'admin@yggdrasil.com', phone: '081234567890' },
-        products: [{ name: order.package.name, price: order.amount, quantity: 1 }]
+        products: [{ product_thumbnail: 'https://xoftware.id/thumbnail.jpg', product_name: order.package.name, product_code: `pack-${order.packageId}`, product_url: 'https;//xoftware.id' }]
       });
 
       await prisma.order.update({
@@ -100,12 +100,12 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
     } catch (error: unknown) {
       console.error(error);
       const errMsg = error instanceof Error ? error.message : String(error);
-      await ctx.reply(`❌ ${ctx.t('order_qr_failed')}\n<i>${errMsg}</i>`, { parse_mode: 'HTML' }).catch(() => {});
+      await ctx.reply(`❌ ${ctx.t('order_qr_failed')}\n<i>${errMsg}</i>`, { parse_mode: 'HTML' }).catch(() => { });
     }
   });
 
   bot.callbackQuery('menu:main', async (ctx) => {
-    await ctx.answerCallbackQuery().catch(() => {});
+    await ctx.answerCallbackQuery().catch(() => { });
     const name = ctx.from?.first_name ?? 'Kawan';
 
     const text = buildStartMessage(ctx.t, name);
@@ -113,11 +113,11 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
       await ctx.editMessageText(text, { parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(() => { });
     });
   });
-  
+
   bot.callbackQuery(/^order:cancel:(\d+)$/, async (ctx) => {
     const orderId = Number(ctx.match[1]);
     await prisma.order.update({ where: { id: orderId }, data: { status: 'CANCELLED' } });
-    await ctx.answerCallbackQuery(ctx.t('order_cancel')).catch(() => {});
+    await ctx.answerCallbackQuery(ctx.t('order_cancel')).catch(() => { });
     const name = ctx.from?.first_name ?? 'Kawan';
     const text = buildStartMessage(ctx.t, name);
     await ctx.editMessageCaption({ caption: text, parse_mode: 'HTML', reply_markup: mainKeyboard(ctx.t) }).catch(async () => {

@@ -66,7 +66,7 @@ export class PaymentService {
     }
   }
 
-  async createTransactionQRIS({ amount, refId, customer, products, note = 'VPN Order', expiresInMinutes = 60 }: { amount: number, refId: string, customer: { name: string, email: string, phone: string }, products: Array<{ name: string, price: number, quantity: number }>, note?: string, expiresInMinutes?: number }) {
+  async createTransactionQRIS({ amount, refId, customer, products, note = 'VPN Order', expiresInMinutes = 60 }: { amount: number, refId: string, customer: { name: string, email: string, phone: string }, products: Array<{ product_name: string, product_code: string, product_url: string, product_thumbnail: string }>, note?: string, expiresInMinutes?: number }) {
     const { merchantId } = await this.getConfig();
     const path = '/v1/api/transactions';
     const body = {
@@ -77,7 +77,8 @@ export class PaymentService {
       fee_direction: 'merchant',
       note,
       expires_in_minutes: expiresInMinutes,
-      metadata: { customer, products }
+      customer,
+      metadata: products
     };
     return this.request(path, 'POST', body);
   }
