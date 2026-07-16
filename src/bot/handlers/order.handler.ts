@@ -1,4 +1,4 @@
-import { Bot, InputFile } from 'grammy';
+import { Bot, InputFile, InlineKeyboard } from 'grammy';
 import { MyContext } from '../index';
 import { prisma } from '../../db/client';
 import { mainKeyboard } from "../keyboards/main.keyboard"
@@ -77,7 +77,10 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
     if (order.status !== 'PENDING') return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
 
     if (order.paymentId) {
-      await ctx.reply('❌ Anda sudah membuat tagihan untuk pesanan ini. Silakan selesaikan pembayaran atau batalkan pesanan.');
+      const kb = new InlineKeyboard()
+        .text('Tampilkan Tagihan', `order:show_qr:${order.id}`)
+        .text('Batalkan Pesanan', `order:cancel:${order.id}`);
+      await ctx.reply('❌ Anda sudah membuat tagihan untuk pesanan ini. Silakan selesaikan pembayaran atau batalkan pesanan.', { reply_markup: kb });
       return;
     }
 
@@ -86,7 +89,10 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
     });
 
     if (pendingOrder) {
-      await ctx.reply(`❌ Anda masih memiliki tagihan yang belum dibayar (Order #${pendingOrder.id}). Silakan selesaikan pembayaran atau batalkan pesanan tersebut lebih dulu.`);
+      const kb = new InlineKeyboard()
+        .text('Tampilkan Tagihan', `order:show_qr:${pendingOrder.id}`)
+        .text('Batalkan Pesanan', `order:cancel:${pendingOrder.id}`);
+      await ctx.reply(`❌ Anda masih memiliki tagihan yang belum dibayar (Order #${pendingOrder.id}). Silakan selesaikan pembayaran atau batalkan pesanan tersebut lebih dulu.`, { reply_markup: kb });
       return;
     }
 
@@ -101,7 +107,10 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
 
       await prisma.order.update({
         where: { id: order.id },
-        data: { paymentId: refId, qrImageUrl: paymentRes.data?.qr_image_url }
+        data: { 
+          paymentId: refId, 
+          qrImageUrl: paymentRes.data?.qr_image_url || (paymentRes.data?.qris_text ? `qris_text:${paymentRes.data.qris_text}` : null)
+        }
       });
 
       const qrUrl = paymentRes.data?.qr_image_url;
@@ -123,6 +132,30 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
       console.error(error);
       const errMsg = error instanceof Error ? error.message : String(error);
       await ctx.reply(`❌ ${ctx.t('order_qr_failed')}\n<i>${errMsg}</i>`, { parse_mode: 'HTML' }).catch(() => { });
+    }
+  });
+
+  bot.callbackQuery(/^order:show_qr:(\d+)$/, async (ctx) => {
+    await ctx.answerCallbackQuery().catch(() => { });
+    const orderId = Number(ctx.match[1]);
+    const order = await prisma.order.findUnique({ where: { id: orderId } });
+
+    if (!order || !order.paymentId) {
+      return ctx.reply(ctx.t('error_data_not_found'));
+    }
+
+    const text = ctx.t('order_qr_ready', { refId: order.paymentId, amount: order.amount.toLocaleString('id-ID') });
+
+    if (order.qrImageUrl?.startsWith('qris_text:')) {
+      const qrisText = order.qrImageUrl.slice(10);
+      const qrBuffer = await generateQrCode(qrisText);
+      await ctx.replyWithPhoto(new InputFile(qrBuffer), { caption: text, parse_mode: 'HTML' });
+      await ctx.deleteMessage().catch(() => { });
+    } else if (order.qrImageUrl) {
+      await ctx.replyWithPhoto(order.qrImageUrl, { caption: text, parse_mode: 'HTML' });
+      await ctx.deleteMessage().catch(() => { });
+    } else {
+      await ctx.reply(text, { parse_mode: 'HTML' });
     }
   });
 
