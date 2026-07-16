@@ -40,10 +40,9 @@ export interface TrialBuilderData {
 
 export interface PaymentBuilderData {
   apiKey?: string;
-  webhookSecret?: string;
   merchantId?: string;
   baseUrl?: string;
-  awaitingField?: 'apiKey' | 'webhookSecret' | 'merchantId' | 'baseUrl';
+  awaitingField?: 'apiKey' | 'merchantId' | 'baseUrl';
 }
 
 const adminState = new Map<number, { action: string; data?: any; messageId?: number }>();
@@ -411,14 +410,13 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     const { getDynamicConfig } = require('../../utils/config.util');
     const { config } = require('../../config');
     const apiKey = await getDynamicConfig('payment_api_key', config.PAYMENT_API_KEY || '');
-    const webhookSecret = await getDynamicConfig('payment_webhook_secret', config.PAYMENT_WEBHOOK_SECRET || '');
     const merchantId = await getDynamicConfig('payment_merchant_id', config.PAYMENT_MERCHANT_ID || '');
     const baseUrl = await getDynamicConfig('payment_base_url', config.PAYMENT_BASE_URL || 'https://pay.xoftware.id');
-    adminState.set(ctx.from!.id, { action: 'payment_form', data: { apiKey, webhookSecret, merchantId, baseUrl }, messageId: ctx.msg?.message_id });
+    adminState.set(ctx.from!.id, { action: 'payment_form', data: { apiKey, merchantId, baseUrl }, messageId: ctx.msg?.message_id });
     await renderPaymentBuilder(ctx);
   });
 
-  bot.callbackQuery(/^admin:payment_set:(apiKey|webhookSecret|merchantId|baseUrl)$/, adminMiddleware, async (ctx) => {
+  bot.callbackQuery(/^admin:payment_set:(apiKey|merchantId|baseUrl)$/, adminMiddleware, async (ctx) => {
     await ctx.answerCallbackQuery().catch(() => {});
     const field = ctx.match[1] as PaymentBuilderData['awaitingField'];
     const state = adminState.get(ctx.from!.id);
@@ -433,7 +431,7 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     if (!state || state.action !== 'payment_form') return;
     
     const data = state.data as PaymentBuilderData;
-    if (!data.apiKey || !data.webhookSecret || !data.merchantId || !data.baseUrl) {
+    if (!data.apiKey || !data.merchantId || !data.baseUrl) {
       await ctx.answerCallbackQuery({ text: '❌ Harap lengkapi semua data sebelum menyimpan!', show_alert: true }).catch(() => {});
       return;
     }
@@ -441,7 +439,6 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
     try {
       const { setDynamicConfig } = require('../../utils/config.util');
       await setDynamicConfig('payment_api_key', data.apiKey);
-      await setDynamicConfig('payment_webhook_secret', data.webhookSecret);
       await setDynamicConfig('payment_merchant_id', data.merchantId);
       await setDynamicConfig('payment_base_url', data.baseUrl);
       
@@ -766,9 +763,9 @@ async function renderPaymentBuilder(ctx: MyContext) {
   const data = state.data as PaymentBuilderData;
   let text = '💳 <b>Payment Configuration</b>\n\n';
   text += `🔑 API Key: <code>${data.apiKey ? '***' + data.apiKey.slice(-4) : '[Belum diisi]'}</code>\n`;
-  text += `🔐 Webhook Secret: <code>${data.webhookSecret ? '***' + data.webhookSecret.slice(-4) : '[Belum diisi]'}</code>\n`;
   text += `🛒 Merchant ID: <code>${data.merchantId || '[Belum diisi]'}</code>\n`;
   text += `🌐 Base URL: <code>${data.baseUrl || '[Belum diisi]'}</code>\n\n`;
+  text += `💡 <b>Info Webhook</b>:\nSilakan masukkan URL berikut di pengaturan Webhook Payment Gateway Anda:\n<code>https://[DOMAIN-BOT-ANDA]/api/webhook/payment</code>\n\n`;
 
   if (data.awaitingField) {
     text += `<i>Menunggu balasan Anda untuk kolom: <b>${data.awaitingField.toUpperCase()}</b>...</i>`;
@@ -778,7 +775,6 @@ async function renderPaymentBuilder(ctx: MyContext) {
 
   const kb = new InlineKeyboard()
     .text('📝 Edit API Key', 'admin:payment_set:apiKey').row()
-    .text('📝 Edit Webhook', 'admin:payment_set:webhookSecret').row()
     .text('📝 Edit Merchant ID', 'admin:payment_set:merchantId').row()
     .text('📝 Edit Base URL', 'admin:payment_set:baseUrl').row()
     .text('💾 SIMPAN', 'admin:payment_save')
