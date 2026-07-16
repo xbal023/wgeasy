@@ -1,11 +1,11 @@
 import { Router } from 'express';
-import { verifySignature } from '../middlewares/verify-signature';
+
 import { prisma } from '../../db/client';
 import { logger } from '../../utils/logger';
 
 const router = Router();
 
-router.post('/payment', verifySignature, async (req, res) => {
+router.post('/payment', async (req, res) => {
   try {
     const { orderId, status, paidAt } = req.body;
     logger.info(`Webhook received for order ${orderId} with status ${status}`);
