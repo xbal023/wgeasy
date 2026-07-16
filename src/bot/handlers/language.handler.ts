@@ -1,5 +1,6 @@
 import { Bot, InlineKeyboard } from 'grammy';
 import { MyContext } from '../index';
+import { prisma } from '../../db/client';
 
 export const registerLanguageHandler = (bot: Bot<MyContext>) => {
   bot.command('lang', async (ctx) => {
@@ -13,6 +14,12 @@ export const registerLanguageHandler = (bot: Bot<MyContext>) => {
   bot.callbackQuery(/^lang:(id|en)$/, async (ctx) => {
     const lang = ctx.match[1];
     ctx.session.lang = lang;
+    if (ctx.from) {
+      await prisma.user.update({
+        where: { telegramId: ctx.from.id },
+        data: { lang }
+      }).catch(() => {});
+    }
     await ctx.answerCallbackQuery(ctx.t('lang_changed')).catch(() => {});
     await ctx.editMessageText(ctx.t('lang_changed') + '\n\nSilakan ketik /start untuk melanjutkan.\nPlease type /start to continue.');
   });
