@@ -78,7 +78,7 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
       const paymentRes = await paymentService.createTransactionQRIS({
         amount: order.amount,
         refId,
-        customer: { name: order.user.fullName, email: 'user@example.com', phone: '' },
+        customer: { name: order.user.fullName, email: 'admin@yggdrasil.com', phone: '081234567890' },
         products: [{ name: order.package.name, price: order.amount, quantity: 1 }]
       });
 
@@ -99,7 +99,8 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
 
     } catch (error: unknown) {
       console.error(error);
-      ctx.answerCallbackQuery(ctx.t('order_qr_failed'));
+      const errMsg = error instanceof Error ? error.message : String(error);
+      await ctx.reply(`❌ ${ctx.t('order_qr_failed')}\n<i>${errMsg}</i>`, { parse_mode: 'HTML' }).catch(() => {});
     }
   });
 
