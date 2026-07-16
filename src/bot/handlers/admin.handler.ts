@@ -507,6 +507,17 @@ export const registerAdminHandler = (bot: Bot<MyContext>) => {
       return;
     }
 
+    if (state.action === 'payment_form' && ctx.message?.text) {
+      const data = state.data as PaymentBuilderData;
+      if (data.awaitingField) {
+        data[data.awaitingField] = ctx.message.text;
+        delete data.awaitingField;
+        await ctx.deleteMessage().catch(() => {});
+        await renderPaymentBuilder(ctx);
+      }
+      return;
+    }
+
     if (state.action === 'broadcast') {
       adminState.delete(ctx.from.id);
       const users = await prisma.user.findMany({ select: { telegramId: true } });

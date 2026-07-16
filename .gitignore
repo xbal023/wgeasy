@@ -48,3 +48,4 @@ Thumbs.db
 plan.md
 wg-easy.env
 deploy_vps.sh
+setup_nginx.sh

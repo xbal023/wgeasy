@@ -15,6 +15,7 @@ const envSchema = z.object({
   PAYMENT_MERCHANT_ID: z.string(),
   PAYMENT_BASE_URL: z.string().url().default('https://payment.xoftware.id'),
   APP_URL: z.string().url(),
+  USE_WEBHOOK: z.string().default('false'),
 });
 
 export const config = envSchema.parse(process.env);

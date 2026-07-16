@@ -41,12 +41,29 @@ export const startBot = async () => {
     { command: 'admin', description: 'Buka Panel Admin (Khusus Admin)' }
   ]).catch(err => logger.error(`Failed to set commands: ${err.message}`));
 
-  if (config.APP_URL.startsWith('https')) {
+  if (config.USE_WEBHOOK === 'true') {
     logger.info('Setting up bot webhook...');
-    await bot.api.setWebhook(`${config.APP_URL}/api/bot-webhook`);
+    try {
+      await bot.api.setWebhook(`${config.APP_URL}/api/bot-webhook`);
+      logger.info('Webhook successfully set.');
+    } catch (err: any) {
+      logger.error(`Failed to set webhook: ${err.message}. Retrying in 60 seconds...`);
+      
+      const retryWebhook = async () => {
+        try {
+          await bot.api.setWebhook(`${config.APP_URL}/api/bot-webhook`);
+          logger.info('Webhook successfully set on retry.');
+        } catch (retryErr: any) {
+          logger.error(`Retry failed: ${retryErr.message}. Retrying in 60 seconds...`);
+          setTimeout(retryWebhook, 60000);
+        }
+      };
+      
+      setTimeout(retryWebhook, 60000);
+    }
   } else {
     logger.info('Starting bot with long polling...');
-    await bot.api.deleteWebhook();
+    await bot.api.deleteWebhook().catch(() => {});
     bot.start({
       onStart: (botInfo) => logger.info(`Bot @${botInfo.username} started in long polling mode`)
     });

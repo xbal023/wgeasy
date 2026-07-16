@@ -14,7 +14,7 @@ app.use(express.json({
 
 app.use('/api/webhook', webhookRoute);
 import { config } from '../config';
-if (config.APP_URL.startsWith('https')) {
+if (config.USE_WEBHOOK === 'true') {
   app.use('/api/bot-webhook', webhookCallback(bot, 'express'));
 }
 
