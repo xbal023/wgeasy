@@ -1,4 +1,4 @@
-import { Bot } from 'grammy';
+import { Bot, InputFile } from 'grammy';
 import { MyContext } from '../index';
 import { prisma } from '../../db/client';
 import { mainKeyboard } from "../keyboards/main.keyboard"
@@ -6,6 +6,7 @@ import { serverKeyboard } from '../keyboards/server.keyboard';
 import { packageKeyboard } from '../keyboards/package.keyboard';
 import { confirmKeyboard } from '../keyboards/confirm.keyboard';
 import { paymentService } from '../../services/payment.service';
+import { generateQrCode } from '../../services/qrcode.service';
 import { buildStartMessage } from "../messages/start.message"
 
 export const registerOrderHandler = (bot: Bot<MyContext>) => {
@@ -88,10 +89,15 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
       });
 
       const qrUrl = paymentRes.data?.qr_image_url;
+      const qrisText = paymentRes.data?.qris_text;
       const text = ctx.t('order_qr_ready', { refId, amount: order.amount.toLocaleString('id-ID') });
 
       if (qrUrl) {
         await ctx.replyWithPhoto(qrUrl, { caption: text, parse_mode: 'HTML' });
+        await ctx.deleteMessage().catch(() => { });
+      } else if (qrisText) {
+        const qrBuffer = await generateQrCode(qrisText);
+        await ctx.replyWithPhoto(new InputFile(qrBuffer), { caption: text, parse_mode: 'HTML' });
         await ctx.deleteMessage().catch(() => { });
       } else {
         await ctx.reply(text, { parse_mode: 'HTML' });
