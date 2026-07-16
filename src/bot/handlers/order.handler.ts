@@ -74,6 +74,22 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
 
     if (!order) return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
 
+    if (order.status !== 'PENDING') return ctx.answerCallbackQuery(ctx.t('error_data_not_found'));
+
+    if (order.paymentId) {
+      await ctx.reply('❌ Anda sudah membuat tagihan untuk pesanan ini. Silakan selesaikan pembayaran atau batalkan pesanan.');
+      return;
+    }
+
+    const pendingOrder = await prisma.order.findFirst({
+      where: { userId: order.userId, status: 'PENDING', paymentId: { not: null } }
+    });
+
+    if (pendingOrder) {
+      await ctx.reply(`❌ Anda masih memiliki tagihan yang belum dibayar (Order #${pendingOrder.id}). Silakan selesaikan pembayaran atau batalkan pesanan tersebut lebih dulu.`);
+      return;
+    }
+
     try {
       const refId = `ORD-${Date.now()}-${order.id}`;
       const paymentRes = await paymentService.createTransactionQRIS({
