@@ -38,8 +38,30 @@ export const startScheduler = () => {
     }
   });
 
-  cron.schedule('0 9 * * *', async () => {
-    logger.info('Running expiry notification job (Mock)');
+  cron.schedule('* * * * *', async () => {
+    const now = new Date();
+    try {
+      const expiredOrders = await prisma.order.findMany({
+        where: {
+          status: 'PENDING',
+          paymentId: { not: null },
+          expiredAt: { lte: now }
+        },
+        include: { user: true }
+      });
+
+      for (const order of expiredOrders) {
+        try {
+          await bot.api.sendMessage(order.user.telegramId.toString(), `⚠️ <b>Pembayaran Kedaluwarsa!</b>\n\nWaktu pembayaran untuk Order #${order.id} telah habis. Tagihan ini telah dihapus oleh sistem secara otomatis.\n\nJika Anda masih ingin memesan, silakan buat pesanan yang baru.`, { parse_mode: 'HTML' }).catch(() => {});
+          await prisma.order.delete({ where: { id: order.id } });
+          logger.info(`Deleted expired order ${order.id} for user ${order.user.telegramId}`);
+        } catch (err) {
+          logger.error(`Failed to process expired order ${order.id}: ${err}`);
+        }
+      }
+    } catch (e) {
+      logger.error('Failed to run expired orders cleanup job: ' + e);
+    }
   });
 
   cron.schedule('0 * * * *', async () => {

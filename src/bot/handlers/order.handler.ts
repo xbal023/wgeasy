@@ -105,10 +105,12 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
         products: [{ product_thumbnail: 'https://xoftware.id/thumbnail.jpg', product_name: order.package.name, product_code: `pack-${order.packageId}`, product_url: 'https://xoftware.id' }]
       });
 
+      const expiresInMinutes = 60;
       await prisma.order.update({
         where: { id: order.id },
         data: { 
           paymentId: refId, 
+          expiredAt: new Date(Date.now() + expiresInMinutes * 60 * 1000),
           qrImageUrl: paymentRes.data?.qr_image_url || (paymentRes.data?.qris_text ? `qris_text:${paymentRes.data.qris_text}` : null)
         }
       });
