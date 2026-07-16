@@ -119,15 +119,17 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
       const qrisText = paymentRes.data?.qris_text;
       const text = ctx.t('order_qr_ready', { refId, amount: order.amount.toLocaleString('id-ID') });
 
+      const kb = new InlineKeyboard().text('Batalkan Pesanan', `order:cancel:${order.id}`);
+
       if (qrUrl) {
-        await ctx.replyWithPhoto(qrUrl, { caption: text, parse_mode: 'HTML' });
+        await ctx.replyWithPhoto(qrUrl, { caption: text, parse_mode: 'HTML', reply_markup: kb });
         await ctx.deleteMessage().catch(() => { });
       } else if (qrisText) {
         const qrBuffer = await generateQrCode(qrisText);
-        await ctx.replyWithPhoto(new InputFile(qrBuffer), { caption: text, parse_mode: 'HTML' });
+        await ctx.replyWithPhoto(new InputFile(qrBuffer), { caption: text, parse_mode: 'HTML', reply_markup: kb });
         await ctx.deleteMessage().catch(() => { });
       } else {
-        await ctx.reply(text, { parse_mode: 'HTML' });
+        await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
       }
 
     } catch (error: unknown) {
@@ -148,16 +150,18 @@ export const registerOrderHandler = (bot: Bot<MyContext>) => {
 
     const text = ctx.t('order_qr_ready', { refId: order.paymentId, amount: order.amount.toLocaleString('id-ID') });
 
+    const kb = new InlineKeyboard().text('Batalkan Pesanan', `order:cancel:${order.id}`);
+
     if (order.qrImageUrl?.startsWith('qris_text:')) {
       const qrisText = order.qrImageUrl.slice(10);
       const qrBuffer = await generateQrCode(qrisText);
-      await ctx.replyWithPhoto(new InputFile(qrBuffer), { caption: text, parse_mode: 'HTML' });
+      await ctx.replyWithPhoto(new InputFile(qrBuffer), { caption: text, parse_mode: 'HTML', reply_markup: kb });
       await ctx.deleteMessage().catch(() => { });
     } else if (order.qrImageUrl) {
-      await ctx.replyWithPhoto(order.qrImageUrl, { caption: text, parse_mode: 'HTML' });
+      await ctx.replyWithPhoto(order.qrImageUrl, { caption: text, parse_mode: 'HTML', reply_markup: kb });
       await ctx.deleteMessage().catch(() => { });
     } else {
-      await ctx.reply(text, { parse_mode: 'HTML' });
+      await ctx.reply(text, { parse_mode: 'HTML', reply_markup: kb });
     }
   });
 
