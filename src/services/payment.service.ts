@@ -71,7 +71,7 @@ export class PaymentService {
     const { merchantId } = await this.getConfig();
     const path = '/v1/api/transactions';
     const body = {
-      merchant_id: merchantId,
+      merchant_id: Number(merchantId),
       channel_code: 'QRIS',
       amount,
       ref_id: refId,
@@ -79,10 +79,7 @@ export class PaymentService {
       fee_direction: 'merchant',
       note,
       expires_in_minutes: expiresInMinutes,
-      customer_name: customer.name,
-      customer_email: customer.email,
-      customer_phone: customer.phone,
-      metadata: products
+      metadata: { customer, products }
     };
     return this.request(path, 'POST', body);
   }
